@@ -89,7 +89,7 @@ class ProviderCatalogFallbackTest {
 
     @Test
     fun merge_v1ConfiguredAndV2Known_areUnionedSoNeitherIsLost() {
-        // 真实形态（抓自 opencode 100.66.1.1:4096）：
+        // 真实形态（抓自 opencode 192.0.2.10:4096，RFC 5737 文档网段）：
         //  V1 /config/providers = litellm / opencode / opencode-go / llama-4060ti（仅已配置）
         //  V2 /api/provider     = opencode / openai / litellm / llama-4060ti（含内置未配置）
         // 只取 V2 会漏 opencode-go；只取 V1 会漏 openai。

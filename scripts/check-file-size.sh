@@ -34,10 +34,10 @@ while IFS= read -r f; do
   echo "$f" | grep -qE "$EXCLUDE" && continue
   n=$(wc -l < "$f")
   if [ "$n" -gt "$HARD" ]; then
-    echo "$f: $n 行 > 硬上限 $HARD"
+    echo "$f: $n 行 > 硬上限 ${HARD}"
     HITS=$((HITS + 1))
   elif [ "$n" -gt "$TARGET" ]; then
-    echo "$f: $n 行 > 目标 $TARGET（待拆分）"
+    echo "$f: $n 行 > 目标 ${TARGET}（待拆分）"
     WARN=$((WARN + 1))
   fi
 done <<< "$FILES"
