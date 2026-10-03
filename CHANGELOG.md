@@ -27,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - SECURITY_WARNING-style highlighting on high-severity issues; friendly empty/error states.
 - **Backend push for Test Intelligence** — a second `/api/ws` subscription consumes `intel.*` events
   (run finish, gate block, audit finding, fix suggest/apply, feature-chat answer) and turns the
-  actionable ones into notifications (run passed/failed, audit findings on warning/critical).
+  actionable ones into notifications (run passed/failed, audit findings on high/critical).
 - **Server monitoring alerts** — a monitoring card in server management shows live CPU/memory/disk
   usage, current thresholds and an enable switch, all editable through `GET/POST /api/alerts`.
   `alert.hardware` push events surface as notifications when a metric crosses its threshold and

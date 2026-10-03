@@ -2,121 +2,170 @@
 Copyright(c) 2016 - Present, Clouds Studio Holding Limited. All rights reserved.
 -->
 
-# AGENTS.md — StarBurst Android 项目规约
+# AGENTS.md — StarBurst Android Project Conventions
 
-## 项目概述
+## Project Overview
 
-StarBurst —— AI 编程助手的原生 Android 客户端（Material 3 + Jetpack Compose）。连接任意讲 OpenCode 兼容 V2 协议的服务器进行流式聊天、文件浏览/编辑、内置 Git 页、PTY 终端、会话管理、端侧 LLM 建议、端侧语音识别、测试智能工作台。
+StarBurst — a native Android client for an AI coding assistant (Material 3 + Jetpack Compose).
+It connects to any server speaking the OpenCode-compatible V2 protocol for streaming chat,
+file browsing/editing, a built-in Git screen, a PTY terminal, session management, on-device
+LLM suggestions, on-device speech recognition, and a test-intelligence workbench.
 
-- **namespace / applicationId**：`org.hiylo.starburst`（debug 后缀 `.debug`）
-- **versionCode / versionName**：8 / 3.0.0
-- **minSdk / targetSdk / compileSdk**：26 / 34 / 34
+- **namespace / applicationId**: `org.hiylo.starburst` (debug suffix `.debug`)
+- **versionCode / versionName**: 8 / 3.0.0
+- **minSdk / targetSdk / compileSdk**: 26 / 34 / 34
 
-## 技术栈
+## Tech Stack
 
-| 层 | 选型 |
+| Layer | Choice |
 |---|---|
-| 构建 | Gradle 8.6 + AGP 8.4.0 + Kotlin 2.0.21（含 compose/serialization 插件） |
-| JDK | **JDK 17**（硬约束，Gradle 8.6 在 JDK 25 上直接失败） |
-| UI | Jetpack Compose BOM 2024.12.01、Material3、navigation-compose、Coil、Accompanist |
-| DI | Hilt 2.52（kapt） |
-| 网络 | Ktor 2.3.11（OkHttp + WebSockets + SSE 流式） |
-| 端侧 ML | MNN（libMNN.so + OpenCV + Vulkan）+ Qwen3.5-0.8B 端侧 LLM |
-| 端侧语音 | sherpa-mnn 流式 Zipformer 双语 |
-| 测试 | JUnit 4.13.2 + Espresso 3.6.1 + Compose ui-test-junit4；E2E 用 **Maestro** |
+| Build | Gradle 8.6 + AGP 8.4.0 + Kotlin 2.0.21 (incl. compose/serialization plugins) |
+| JDK | **JDK 17** (hard constraint; Gradle 8.6 fails outright on JDK 25) |
+| UI | Jetpack Compose BOM 2024.12.01, Material3, navigation-compose, Coil, Accompanist |
+| DI | Hilt 2.52 (kapt) |
+| Networking | Ktor 2.3.11 (OkHttp + WebSockets + SSE streaming) |
+| On-device ML | MNN (libMNN.so + OpenCV + Vulkan) + Qwen3.5-0.8B on-device LLM |
+| On-device speech | sherpa-mnn streaming Zipformer, bilingual |
+| Testing | JUnit 4.13.2 + Espresso 3.6.1 + Compose ui-test-junit4; E2E via **Maestro** |
 
-`gradle.properties` 已含工作区硬性要求：`org.gradle.daemon=false`、`kotlin.compiler.execution.strategy=in-process`。
+`gradle.properties` already contains the workspace hard requirements:
+`org.gradle.daemon=false`, `kotlin.compiler.execution.strategy=in-process`.
 
-## 部署分工（2026-09-23 起）
+## Deployment and Send Protocol
 
-- **Debug 包** → 控制**原后端**（opencode 1.18.30 + starburst-backend），发送固定走 V1 `prompt_async`
-  （该后端 V2 发送不可用：工具调用触发服务端 `Failed to drain Session`、`queue` 不启动生成）。
-- **Release 包** → 控制**新的 starburst-agent**（V2 协议 `api` 命名空间），发送走 V2 承认式投递
-  （V1-only 服务器自动回退）。发送协议由 `sendPrompt` 按 `BuildConfig.DEBUG` 门控
-  （`data/api/StarBurstApiMessages.kt`），改部署或协议先读该函数注释。
-- 产品 APK 落 `/opt/starburst-apk/download/`，内网下载 `http://100.66.1.1:18882/<文件名>`。
+Sending is **not** split by build type. `sendPrompt` uses one unified path for every build variant
+(`data/api/StarBurstApiMessages.kt`): V2 acknowledged delivery — switch agent/model only when the
+target differs, then `POST /api/session/{id}/prompt` with `resume=true` and `delivery=queue`.
 
-## 架构 / 包结构
+- The **starburst-agent** server speaks the V2 `api` namespace, so delivery succeeds directly
+  (tool calls and permission gating included).
+- The **original backend** (opencode 1.18.30 + starburst-backend) has no usable V2 send path: tool
+  calls fail server-side with `Failed to drain Session` and `queue` never starts generation. Its V2
+  endpoints answer **404/405**, and only those two statuses trigger the fallback to V1
+  `prompt_async`. Every other status (400/500/…) is a real rejection and is rethrown unchanged, so
+  the V1 fallback cannot mask the cause (quota/parameters/session state).
+- `[system]` / `[tools]` take effect only on V1 and are ignored by the V2 contract, so they are no
+  longer a reason to route via V1.
 
-模块：`:app` + `:baselineprofile`。源码 313 个 .kt，其中 ui 145 个。
+There is **no `BuildConfig.DEBUG` gate in the send path**. Read the comments on `sendPrompt` and
+`buildV2PromptRequest` before changing the send protocol; they document the delivery/resume
+contract.
+- Product APKs land in `/opt/starburst-apk/download/`; intranet download via
+  `http://192.0.2.150:18882/<filename>`.
+
+## Architecture / Package Structure
+
+Modules: `:app` + `:baselineprofile`. 337 .kt source files, 149 of them under ui.
 
 ```
 app/src/main/kotlin/org/hiylo/starburst/
 ├── MainActivity.kt / StarBurstApp.kt
-├── ui/        (145)  screens/ components/ navigation/ theme/
-├── data/      (59)   api/ backend/ repository/ search/ shell/ sync/ update/
+├── ui/        (149)  screens/ components/ navigation/ theme/
+├── data/      (57)   api/ backend/ repository/ search/ shell/ sync/ backup/
 ├── domain/    (15)
-├── service/   (7)    StarBurstConnectionService 等
+├── service/   (7)    StarBurstConnectionService et al.
 ├── ml/        (6)
 ├── widget/    (4)
 ├── di/        (2)
 └── logging/   (1)
 ```
 
-> 本项目为 Android MVVM + 手写 repository 风格，全局 Java 分层规范（controller/service/entity/dto/vo）在此项目无作用对象。
+> This project is Android MVVM with hand-written repositories; the global Java layering
+> convention (controller/service/entity/dto/vo) has no target in this project.
 
-## 安全红线（提交 / 推送前必须自查）
+## Security Red Lines (self-check before commit / push)
 
-1. **禁止提交以下内容**（写入 commit 视为事故，需重写历史）：
-   - 内网/私有 IP（`10.x`、`172.16-31.x`、`192.168.x`）及内网域名
-   - 明文口令、API Key、token（GitLab PAT、GitHub PAT、OpenAI `sk-`、AWS `AKIA` 等）
-   - 私钥（`*.pem`、`id_rsa`、keystore、`.jks`）、`.env`、连接串内嵌凭据（`user:pass@host`）
-2. **地址占位统一用 RFC 5737 文档网段**：`192.0.2.x` / `198.51.100.x` / `203.0.113.x`（例：`http://192.0.2.150:18090`），或 `<host>:<port>` 变量形式
-3. **git remote 禁止在 URL 内嵌 token**，改用 SSH 或 git credential helper
-4. **本地提交**：已提供 pre-commit 钩子，新 clone 后执行一次 `git config core.hooksPath githooks`，之后每次 commit 自动运行 `scripts/check-secrets.sh`
-5. **推送 GitHub 前**：手动跑 `scripts/check-secrets.sh --all` 复查全仓；CI 另有 `.github/workflows/secret-scan.yml`（gitleaks）兜底
-6. 确认为误报需放行时：先整改为合规写法；实在无法避免才 `git commit --no-verify`，并在提交说明注明原因
+1. **Never commit the following** (writing any of these into a commit is an incident
+   requiring history rewrite):
+   - Intranet/private/special-use IPs (`10.x`, `172.16-31.x`, `192.168.x`, CGNAT `100.64/10`, link-local `169.254.x`) and intranet domain names
+   - Plaintext passwords, API keys, tokens (GitLab PAT, GitHub PAT, OpenAI `sk-`,
+     AWS `AKIA`, etc.)
+   - Private keys (`*.pem`, `id_rsa`, keystores, `.jks`), `.env`, credentials embedded in
+     connection strings (`user:pass@host`)
+2. **Use RFC 5737 documentation ranges for address placeholders**: `192.0.2.x` /
+   `198.51.100.x` / `203.0.113.x` (e.g. `http://192.0.2.150:18882/<filename>`), or a
+   `<host>:<port>` variable form
+3. **git remotes must not embed tokens in URLs**; use SSH or a git credential helper instead
+4. **Local commits**: a pre-commit hook is provided; after a fresh clone run
+   `git config core.hooksPath githooks` once, and every commit afterwards automatically
+   runs `scripts/check-secrets.sh`
+5. **Before pushing to GitHub**: manually run `scripts/check-secrets.sh --all` to re-check
+   the whole repo; CI additionally has `.github/workflows/secret-scan.yml` (gitleaks)
+   as a safety net
+6. If a finding is confirmed as a false positive and must be allowed through: first fix it
+   into a compliant form; only when truly unavoidable use `git commit --no-verify` and state
+   the reason in the commit message
 
-## 构建与测试
+## Build & Test
 
 ```bash
-# 构建
-./gradlew assembleDebug                     # 调试
-./gradlew assembleRelease                   # 发布（需 app/keystore/signing.properties）
+# Build
+./gradlew assembleDebug                     # debug
+./gradlew assembleRelease                   # release (needs app/keystore/signing.properties)
 
-# 测试
-./gradlew test                              # JVM 单测
-./gradlew test --no-daemon --stacktrace     # CI 写法（JDK 必须 17）
+# Test
+./gradlew test                              # JVM unit tests
+./gradlew test --no-daemon --stacktrace     # CI style (JDK must be 17)
 
-# E2E（Maestro）
-./scripts/run-e2e.sh                        # 跑 e2e/smoke.yml 等
+# E2E (Maestro)
+./scripts/run-e2e.sh                        # runs e2e/smoke.yml etc.
 
-# 行数门禁
-./scripts/check-file-size.sh                # 目标 1000 / 硬上限 1500
+# Line-count gate
+./scripts/check-file-size.sh                # target 1000 / hard cap 1500
 
-# 性能基线
+# Performance baseline
 ./scripts/measure-startup.sh
 ```
 
-### E2E 规约
-- 专用 AVD `ocb_e2e`，端口 5566，`JAVA_HOME_JDK17=/usr/lib/jvm/dragonwell-17`
-- 产物落 `/opt/test-artifacts/opencode/e2e/<时间戳>/`
-- Maestro 日志 `tee` 到 `/opt/test-artifacts/opencode/logs/maestro/`
-- **模拟器每次开新实例、用完即关**（`pkill -f qemu-system-x86_64`）
+### E2E Conventions
+- Dedicated AVD `ocb_e2e`, port 5566, `JAVA_HOME_JDK17=/usr/lib/jvm/dragonwell-17`
+- Artifacts land in `/opt/test-artifacts/opencode/e2e/<timestamp>/`
+- Maestro logs are `tee`-ed to `/opt/test-artifacts/opencode/logs/maestro/`
+- **Each emulator run uses a fresh instance, shut down after use**
+  (`pkill -f qemu-system-x86_64`)
 
-## Git 规范
+## Git Conventions
 
-- 提交消息：`{type}({scope}): {subject}`，type：`feat`/`fix`/`refactor`/`docs`/`chore`/`test`
-- 远端：`github`（SSH）、`gitlab`（内网，URL 中不含 token）
-  > 安全红线中「禁止内网 IP」针对**版本库内容**（代码/配置/文档），本地 git remote 配置不在版本库中，可使用真实内网地址。
+- Commit messages: `{type}({scope}): {subject}`; type is one of
+  `feat`/`fix`/`refactor`/`docs`/`chore`/`test`
+- Remotes: a single `origin` over SSH — `git@github.com:NightSommelier/starburst.git`
+  > The security red line "no intranet IPs" targets **repository content**
+  > (code/config/docs); local git remote configuration is not part of the repository
+  > and may use real intranet addresses.
 
 ## CI
 
-- `.github/workflows/ci.yml`：unit-tests（JDK 17 + 行数门禁 + `./gradlew test`）
-- `.github/workflows/release.yml`：从 `build.gradle.kts` 抽版本、校验 `update.json`、GitHub Secrets keystore 签名
-- `.github/workflows/secret-scan.yml`：gitleaks
+- `.github/workflows/ci.yml`: unit-tests (JDK 17 + line-count gate + `./gradlew test`).
+  `push` carries a `paths-ignore` for `docs/**`, `**.md`, `release-notes/**`; `pull_request` has
+  **no** paths filter on purpose, so a docs-only PR still reports the required
+  "JVM unit tests" check and branch protection cannot deadlock.
+- `.github/workflows/release.yml`: extracts the version from `build.gradle.kts`,
+  validates `update.json`, signs with the GitHub Secrets keystore. Also `paths-ignore`s
+  `docs/**`, `**.md`, `release-notes/**`.
+- `.github/workflows/secret-scan.yml`: gitleaks **plus** a `bash scripts/check-secrets.sh --all`
+  step (the repo's own rule set for private/CGNAT/link-local IPs and URL-embedded credentials,
+  honouring RFC 5737 documentation ranges). Runs on every `push` and `pull_request` with no
+  paths filter.
 
-## 文档索引
+## Documentation Index
 
-| 文件 | 说明 |
-|------|------|
-| `docs/code-audit-3.1.0.md` | 3.1.0 代码审计报告 |
-| `docs/performance-baseline.md` | 冷启动/内存基线 |
-| `docs/release-readiness-audit-3.1.0.md` | 上线就绪度审计 |
-| `docs/verification-checklist.md` | 3.0.0 审查修复验证清单 |
-| `docs/screenshots/` | UI 截图 |
-| `CHANGELOG.md` | 变更记录 |
-| `KNOWN_ISSUES.md` | 已知问题 |
-| `SECURITY.md` | 安全说明 |
-| `ROADMAP.md` | 路线图 |
-| `DESIGN.md` / `DESIGN.zh-CN.md` | 设计规范 |
+Every English document has a Ukrainian `_UK` twin; the twin path is in the last column. `*_UK`
+files are the canonical Ukrainian sources for their English counterparts.
+
+| File | Description | Ukrainian twin |
+|------|-------------|----------------|
+| `README.md` | Project overview and build/install instructions | `README_UK.md` |
+| `ROADMAP.md` | Roadmap and per-version feature ticks | `ROADMAP_UK.md` |
+| `DESIGN.md` / `DESIGN.zh-CN.md` | Design spec (EN / zh-CN) | `DESIGN_UK.md` |
+| `CHANGELOG.md` | Change log | `CHANGELOG_UK.md` |
+| `KNOWN_ISSUES.md` | Known issues and outstanding device verification | `KNOWN_ISSUES_UK.md` |
+| `SECURITY.md` | Security notes and supported versions | `SECURITY_UK.md` |
+| `CONTRIBUTING.md` | Contribution and commit conventions | — |
+| `CODE_OF_CONDUCT.md` | Code of conduct | — |
+| `TRADEMARKS.md` | Trademark statement | — |
+| `docs/code-audit-3.1.0.md` | 3.1.0 code audit report | `docs/code-audit-3.1.0_UK.md` |
+| `docs/release-readiness-audit-3.1.0.md` | Release-readiness audit | `docs/release-readiness-audit-3.1.0_UK.md` |
+| `docs/verification-checklist.md` | 3.0.0 review-fix verification checklist | `docs/verification-checklist_UK.md` |
+| `docs/performance-baseline.md` | Cold start / memory baseline | `docs/performance-baseline_UK.md` |
+| `docs/screenshots/` | UI screenshots | — |
+| `release-notes/` | Per-release notes, 1.0.0 → 3.1.0 (8 releases; each also has a `_UK` twin) | `release-notes/*_UK.md` |

@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for reporting a bug! Please search the [issue tracker](https://github.com/hiylo/starburst/issues)
+        Thanks for reporting a bug! Please search the [issue tracker](https://github.com/NightSommelier/starburst/issues)
         first to avoid duplicates.
   - type: textarea
     id: description

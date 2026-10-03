@@ -12,7 +12,7 @@ Copyright(c) 2016 - Present, Clouds Studio Holding Limited. All rights reserved.
 [![Min SDK](https://img.shields.io/badge/minSdk-26-brightgreen)]()
 [![Platform](https://img.shields.io/badge/Platform-Android-blue)]()
 
-**English · [简体中文](README.zh-CN.md)**
+**English · [Simplified Chinese](README.zh-CN.md) · [Ukrainian](README_UK.md)**
 
 </div>
 
