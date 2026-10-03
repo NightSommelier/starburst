@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Живий журнал служби -->
+    <string name="log_tail_section_title">Журнал служби</string>
+    <string name="log_tail_open">Відкрити живий журнал</string>
+    <string name="log_tail_title">Живий журнал</string>
+    <string name="log_tail_path_label">Шлях до файлу журналу</string>
+    <string name="log_tail_path_hint">~/.local/share/opencode/log/opencode.log</string>
+    <string name="log_tail_keyword_label">Фільтр за ключовим словом</string>
+    <string name="log_tail_keyword_hint">Фільтрувати рядки…</string>
+    <string name="log_tail_start">Почати</string>
+    <string name="log_tail_stop">Зупинити</string>
+    <string name="log_tail_empty">Немає вмісту журналу</string>
+    <string name="log_tail_path_blank">Вкажіть шлях до файлу журналу</string>
+</resources>

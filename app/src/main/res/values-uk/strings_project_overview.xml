@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Огляд проєкту (статистика файлів/рядків за типами) -->
+    <string name="menu_project_overview">Огляд проєкту</string>
+    <string name="project_overview_title">Огляд проєкту</string>
+    <string name="project_overview_loading">Сканування файлів проєкту…</string>
+    <string name="project_overview_empty">У цьому проєкті не знайдено вихідних файлів</string>
+    <string name="project_overview_no_directory">У цій сесії немає каталогу проєкту</string>
+    <string name="project_overview_error">Не вдалося просканувати проєкт</string>
+    <string name="project_overview_retry">Повторити</string>
+    <string name="project_overview_summary">Файлів: %1$d · рядків: %2$d · %3$s</string>
+    <string name="project_overview_file_count_section">Файли за типами</string>
+    <string name="project_overview_line_count_section">Рядки за типами</string>
+    <string name="project_overview_largest_files_section">Найбільші файли</string>
+    <string name="project_overview_type_column">Тип</string>
+    <string name="project_overview_count_column">Файли</string>
+    <string name="project_overview_code_column">Код</string>
+    <string name="project_overview_comment_column">Коментарі</string>
+    <string name="project_overview_blank_column">Порожні</string>
+    <string name="project_overview_approximate_note">Рядки коментарів визначаються приблизно за поширеним синтаксисом</string>
+</resources>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Тема -->
+    <string name="settings_theme_amoled">AMOLED</string>
+
+    <!-- Відображення чату -->
+    <string name="settings_line_height">Інтервал рядків чату</string>
+    <string name="settings_line_height_value">%1$s×</string>
+
+    <!-- Дані -->
+    <string name="settings_section_data">Дані</string>
+    <string name="settings_export_session">Експортувати поточну сесію</string>
+    <string name="settings_export_session_desc">Зберегти розмову як Markdown або JSON</string>
+    <string name="settings_export_hint">Експорт доступний на екрані сесії</string>
+</resources>

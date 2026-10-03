@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Різниця файлу -->
+    <string name="diff_show_changes">Показати зміни</string>
+    <string name="diff_loading">Обчислення різниці…</string>
+    <string name="diff_no_changes">Немає змін</string>
+    <string name="diff_failed">Не вдалося обчислити різницю</string>
+    <string name="diff_truncated">Різниця завелика, показано рядки: %1$d</string>
+    </resources>

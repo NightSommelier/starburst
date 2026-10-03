@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Автономна (на пристрої) допомога з кодом у редакторі -->
+    <string name="offline_action_title">На пристрої</string>
+    <string name="offline_action_complete">Доповнити код</string>
+    <string name="offline_action_rewrite">Переписати код</string>
+    <string name="offline_dialog_complete_title">Доповнити код (на пристрої)</string>
+    <string name="offline_dialog_rewrite_title">Переписати код (на пристрої)</string>
+    <string name="offline_dialog_loading">Генерація на пристрої…</string>
+    <string name="offline_model_unavailable">Модель для пристрою недоступна. Вона завантажується автоматично під час першого використання; якщо її не вбудовано, завантажте її в Налаштуваннях.</string>
+    <string name="offline_failed">Помилка генерації на пристрої. Спробуйте ще раз.</string>
+</resources>

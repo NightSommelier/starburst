@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_quote_reply">Цитувати у відповіді</string>
+    <string name="chat_edit_resend">Редагувати й надіслати повторно</string>
+    <string name="chat_today">Сьогодні</string>
+    <string name="chat_yesterday">Вчора</string>
+    <string name="chat_earlier">Раніше</string>
+    <string name="chat_code_expand">Розгорнути</string>
+    <string name="chat_code_collapse">Згорнути</string>
+    <string name="chat_empty_quick_start">Швидкий старт</string>
+    <string name="chat_empty_prompt_1">Допоможи реалізувати нову функцію</string>
+    <string name="chat_empty_prompt_2">Огляни останні зміни</string>
+    <string name="chat_empty_prompt_3">Поясни цей код</string>
+</resources>

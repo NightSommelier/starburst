@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Хронологія сесії (візуалізація процесу ухвалення рішень агентом) -->
+    <string name="menu_session_timeline">Хронологія сесії</string>
+    <string name="timeline_title">Хронологія сесії</string>
+    <string name="timeline_reconstructed_note">Відтворено з поточного стану в пам\'яті (наскільки можливо)</string>
+    <string name="timeline_empty">Для цієї сесії подій хронології немає</string>
+
+    <!-- Статус запису хронології -->
+    <string name="timeline_status_running">виконується</string>
+    <string name="timeline_status_completed">завершено</string>
+    <string name="timeline_status_failed">помилка</string>
+    <string name="timeline_status_pending">очікування</string>
+    <string name="timeline_status_recorded">записано</string>
+
+    <!-- Знімок стану списку завдань -->
+    <string name="timeline_todo_title">Прогрес завдань</string>
+    <string name="timeline_todo_progress">%1$d/%2$d завершено</string>
+</resources>

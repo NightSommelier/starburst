@@ -26,4 +26,8 @@
     <string name="document_revise_failed_detail">文档修改失败：%1$s</string>
     <string name="document_download_failed">文档下载失败</string>
     <string name="document_downloaded">文档已下载</string>
+    <!-- 文档预览弹层（3.1.0） -->
+    <string name="document_preview_sheet_title">文档预览</string>
+    <string name="document_preview_load_failed">预览页加载失败（%1$s）</string>
+    <string name="document_preview_error_network">网络错误</string>
 </resources>

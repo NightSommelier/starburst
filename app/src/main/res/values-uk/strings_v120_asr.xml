@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_voice_input">Голосовий ввід</string>
+    <string name="chat_voice_input_stop">Зупинити голосовий ввід</string>
+    <string name="chat_voice_input_permission_denied">Для голосового вводу потрібен доступ до мікрофона</string>
+    <string name="chat_voice_input_error">Голосовий ввід не вдався, спробуйте ще раз</string>
+    <string name="chat_voice_input_listening">Слухаю… Відпустіть, щоб вставити, проведіть угору, щоб скасувати</string>
+    <string name="chat_model_vision_unsupported">Поточна модель не підтримує аналіз зображень</string>
+</resources>

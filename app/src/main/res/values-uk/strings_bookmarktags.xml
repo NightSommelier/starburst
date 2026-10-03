@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Мітки та групи закладок -->
+    <string name="bookmarktags_all">Усі</string>
+    <string name="bookmarktags_manage_tags">Керування мітками</string>
+    <string name="bookmarktags_add_tag">Додати мітку</string>
+    <string name="bookmarktags_tag_hint">Назва мітки</string>
+    <string name="bookmarktags_save">Зберегти</string>
+    <string name="bookmarktags_cancel">Скасувати</string>
+    <string name="bookmarktags_no_tags">Міток ще немає</string>
+    <string name="bookmarktags_remove_tag">Видалити мітку</string>
+    <string name="bookmarktags_empty_filter">Немає закладок із цією міткою</string>
+</resources>

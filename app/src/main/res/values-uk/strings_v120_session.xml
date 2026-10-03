@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Список сесій: фільтр і сортування -->
+    <string name="sessions_filter">Фільтр і сортування</string>
+    <string name="sessions_sort_newest">Спочатку нові</string>
+    <string name="sessions_sort_oldest">Спочатку старі</string>
+    <string name="sessions_sort_title">Заголовок (A–Z)</string>
+    <string name="sessions_filter_directory">Фільтр за каталогом</string>
+    <string name="sessions_filter_all_directories">Усі каталоги</string>
+
+    <!-- Пакетне архівування -->
+    <string name="sessions_archive_selected">Архівувати вибрані</string>
+    <string name="sessions_archive_selected_confirm">Архівувати сесії (%1$d)?</string>
+    <string name="session_archive">Архівувати сесію</string>
+    <string name="session_archive_confirm">Архівувати \"%1$s\"?</string>
+
+    <!-- Пакетне стиснення -->
+    <string name="sessions_compact_selected">Стиснути вибрані</string>
+    <string name="sessions_compact_selected_confirm">Стиснути сесії (%1$d), щоб зменшити контекст? Кожну сесію буде підсумовано.</string>
+
+    <!-- Останні проєкти -->
+    <string name="sessions_recent_projects">Останні проєкти</string>
+
+    <!-- Фільтр за часом -->
+    <string name="sessions_filter_time">Фільтр за часом</string>
+    <string name="sessions_time_all">Увесь час</string>
+    <string name="sessions_time_today">Сьогодні</string>
+    <string name="sessions_time_week">Останні 7 днів</string>
+    <string name="sessions_time_month">Останні 30 днів</string>
+
+    <!-- Глобальний пошук -->
+    <string name="global_search_title">Глобальний пошук</string>
+    <string name="global_search_hint">Пошук за серверами…</string>
+    <string name="global_search_empty">Сесій не знайдено</string>
+    <string name="global_search_time_all">Увесь час</string>
+    <string name="global_search_time_today">Сьогодні</string>
+    <string name="global_search_time_week">Останні 7 днів</string>
+    <string name="global_search_time_month">Останні 30 днів</string>
+    <string name="global_search_result_count">Сесій: %1$d · підключених серверів: %2$d</string>
+</resources>

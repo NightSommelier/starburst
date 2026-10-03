@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Дії AI в редакторі -->
+    <string name="ai_action_title">AI</string>
+    <string name="ai_action_explain">Пояснити</string>
+    <string name="ai_action_refactor">Рефакторинг</string>
+    <string name="ai_action_write_tests">Написати тести</string>
+    <string name="ai_dialog_explain_title">Пояснити код</string>
+    <string name="ai_dialog_refactor_title">Рефакторинг коду</string>
+    <string name="ai_dialog_write_tests_title">Написати тести</string>
+    <string name="ai_dialog_loading">Генерація…</string>
+    <string name="ai_dialog_copy">Копіювати</string>
+    <string name="ai_dialog_apply">Застосувати</string>
+    <string name="ai_dialog_close">Закрити</string>
+    <string name="ai_no_model">Немає доступної AI-моделі. Налаштуйте LLM-провайдера або завантажте модель для пристрою.</string>
+    <string name="ai_failed">Дія AI не вдалася. Спробуйте ще раз.</string>
+</resources>
