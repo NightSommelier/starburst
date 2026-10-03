@@ -5,17 +5,31 @@ on:
   push:
     tags:
       - 'v*'
+    # Docs-only pushes cannot change the APK; skip them for parity with
+    # ci.yml (mirrors market .forgejo CI). Path filters are not evaluated
+    # for pushes of tags, so release tags still always build.
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+      - 'release-notes/**'
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build-release:
     runs-on: ubuntu-latest
+    # Write permission is required here (and only here): the last job steps
+    # push the release tag and upload Release assets. Checkout keeps its
+    # credentials for that tag push (persist-credentials must stay true).
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
+        with:
+          persist-credentials: true # required for `git push origin $TAG` below
 
       - name: Extract version from build.gradle.kts
         id: version
@@ -26,31 +40,37 @@ jobs:
           echo "code=$VERSION_CODE" >> $GITHUB_OUTPUT
           echo "Building version: $VERSION (code: $VERSION_CODE)"
 
+      # Same JDK 17 temurin toolchain + gradle cache as ci.yml: Gradle 8.6
+      # cannot run on newer toolchains, and the distribution must match CI.
       - name: Set up JDK 17
         uses: actions/setup-java@0ab4596768b603586c0de567f2430c30f5b0d2b0 # v3.13.0
         with:
-          distribution: 'adopt'
+          distribution: 'temurin'
           java-version: '17'
+          cache: 'gradle'
 
       - name: Grant execute permissions for gradlew
         run: chmod +x ./gradlew
 
       - name: Validate release metadata
+        env:
+          VERSION: ${{ steps.version.outputs.name }}
+          VERSION_CODE: ${{ steps.version.outputs.code }}
         run: |
           if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] && [ "$GITHUB_REF_NAME" != "main" ]; then
             echo "::error::Manual releases must run from main, not $GITHUB_REF_NAME"
             exit 1
           fi
-          if [ "$GITHUB_REF_TYPE" = "tag" ] && [ "$GITHUB_REF_NAME" != "v${{ steps.version.outputs.name }}" ]; then
-            echo "::error::Tag $GITHUB_REF_NAME does not match version v${{ steps.version.outputs.name }}"
+          if [ "$GITHUB_REF_TYPE" = "tag" ] && [ "$GITHUB_REF_NAME" != "v$VERSION" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match version v$VERSION"
             exit 1
           fi
           MANIFEST_VERSION=$(python3 -c 'import json; print(json.load(open("update.json"))["versionName"])')
           MANIFEST_CODE=$(python3 -c 'import json; print(json.load(open("update.json"))["versionCode"])')
           MANIFEST_URL=$(python3 -c 'import json; print(json.load(open("update.json"))["releaseUrl"])')
-          EXPECTED_URL="https://github.com/hiylo/starburst/releases/tag/v${{ steps.version.outputs.name }}"
-          test "$MANIFEST_VERSION" = "${{ steps.version.outputs.name }}" || { echo "::error::update.json versionName mismatch"; exit 1; }
-          test "$MANIFEST_CODE" = "${{ steps.version.outputs.code }}" || { echo "::error::update.json versionCode mismatch"; exit 1; }
+          EXPECTED_URL="https://github.com/NightSommelier/starburst/releases/tag/v$VERSION"
+          test "$MANIFEST_VERSION" = "$VERSION" || { echo "::error::update.json versionName mismatch"; exit 1; }
+          test "$MANIFEST_CODE" = "$VERSION_CODE" || { echo "::error::update.json versionCode mismatch"; exit 1; }
           test "$MANIFEST_URL" = "$EXPECTED_URL" || { echo "::error::update.json releaseUrl mismatch"; exit 1; }
 
       - name: Decode keystore
@@ -73,8 +93,9 @@ jobs:
         run: ./gradlew :app:assembleRelease
 
       - name: Rename APK
+        env:
+          VERSION: ${{ steps.version.outputs.name }}
         run: |
-          VERSION="${{ steps.version.outputs.name }}"
           mkdir -p release-apks
           APK=$(find app/build/outputs/apk/release -name '*.apk' ! -name '*unsigned*' | head -1)
           if [ -n "$APK" ]; then
@@ -112,9 +133,9 @@ jobs:
           manifest = {
               "versionName": version,
               "versionCode": int(os.environ["VERSION_CODE"]),
-              "releaseUrl": f"https://github.com/hiylo/starburst/releases/tag/v{version}",
+              "releaseUrl": f"https://github.com/NightSommelier/starburst/releases/tag/v{version}",
               "packageName": "org.hiylo.starburst",
-              "apkUrl": f"https://github.com/hiylo/starburst/releases/download/v{version}/starburst-{version}.apk",
+              "apkUrl": f"https://github.com/NightSommelier/starburst/releases/download/v{version}/starburst-{version}.apk",
               "sha256": os.environ["SHA256"],
           }
           with open("release-metadata/update.json", "w", encoding="utf-8") as output:
@@ -125,8 +146,8 @@ jobs:
       - name: Create or update GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.name }}
         run: |
-          VERSION="${{ steps.version.outputs.name }}"
           TAG="v${VERSION}"
 
           # Never move an existing release tag to different code.

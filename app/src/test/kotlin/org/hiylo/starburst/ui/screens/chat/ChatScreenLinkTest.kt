@@ -30,7 +30,7 @@ class ChatScreenLinkTest {
 
     @Test
     fun `cross origin urls are not same server`() {
-        assertFalse(isSameServerUrl("https://github.com/hiylo/starburst", "http://192.0.2.100:4096"))
+        assertFalse(isSameServerUrl("https://github.com/NightSommelier/starburst", "http://192.0.2.100:4096"))
         assertFalse(isSameServerUrl("http://192.0.2.101:4096", "http://192.0.2.100:4096"))
         assertFalse(isSameServerUrl("http://192.0.2.100:4097", "http://192.0.2.100:4096"))
         assertFalse(isSameServerUrl("http://evil.example.com/192.0.2.100:4096", "http://192.0.2.100:4096"))

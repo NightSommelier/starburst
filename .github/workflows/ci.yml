@@ -4,6 +4,14 @@ on:
   push:
     branches:
       - main
+    # Docs-only pushes (PROJECT_STATE, plans, reports) cannot break tests;
+    # skip the ~20min unit-test suite for them (mirrors market .forgejo CI).
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+      - 'release-notes/**'
+  # No paths-ignore on pull_request: a docs-only PR must still report the
+  # required "JVM unit tests" check, otherwise branch protection deadlocks.
   pull_request:
 
 permissions:
