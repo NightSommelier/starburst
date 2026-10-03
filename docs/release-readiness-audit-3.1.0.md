@@ -1,67 +1,130 @@
-# 3.1.0 上线就绪度审计报告（功能完备性）
+# 3.1.0 Release-Readiness Audit Report (functional completeness)
 
-> 目的：对照 ROADMAP 3.1.0 承诺，逐项核实功能是否**真正闭环可用**、有无缺口/半成品/缺陷。
-> 方法：3 个并行子代理按功能域（测试智能 / 告警·同步 / KB·文档）做「入口→VM→API→后端契约」三层
-> 接线核对 + 闭环/反馈/边界检查；另核发版就绪度。
-> 日期：2026-09-22。结论：**无阻塞上线项**；1 个明确缺陷已修，若干需求决策项见文末。
+> Purpose: against the ROADMAP 3.1.0 commitments, verify item by item whether features are
+> **truly closed-loop and usable**, and whether gaps / half-finished work / defects remain.
+> Method: 3 parallel subagents per functional domain (test intelligence / alerts·sync / KB·docs)
+> performed three-layer wiring checks (entry → VM → API → backend contract) plus closed-loop /
+> feedback / edge-case checks; release readiness was audited separately.
+> Date: 2026-09-22. Verdict: **no release-blocking items**; 1 confirmed defect already fixed;
+> several requirement-decision items are listed at the end.
 
-## 一、测试智能 M9 —— ✅ 可上线
+## 1. Test Intelligence M9 — ✅ shippable
 
-- **完备**：会话列表入口（backendReady 门控）→ 项目列表 → 详情四区块（功能点 + 单测 + 问题 + 修复）→ AI 对话，三层接线全通、与后端契约逐字段一致；问题 ack/挂功能点、修复 apply(file/patch/branch)/回滚/驳回、diff 预览、失败/空/加载态齐全。
-- **⚠️ 缺口（不阻塞，已完善 2026-09-22）**：
-  - `intel.gate.blocked`/`fix.suggested`/`fix.applied`/`chat.answer`/`env.ready` 事件被解析但无通知/UI 出口（落 `Unit`）；门禁失败仅 Toast「运行失败」无原因 → **已修**：五类事件接入通知（`showGateBlockedNotification` 等），`startRun` 失败展示后端原因。
-  - 发起单测后 run 状态**不自动更新**（不消费 `intel.run.event` 刷新列表，需手动刷新）→ **已修**：新增全局 `IntelRunEventBus`，推送层发布 `intel.run.event`，项目详情页订阅后按 projectId 实时合并 run 列表；run 终态顺带刷新问题/修复分块。
-  - `loadRunResults` 失败会被**永久缓存为空**（幂等守卫使本页无法重试）→ **已修**：失败不再写空缓存，改为 `runResultsFailed` 集合标记，UI 显示「加载失败，点击重试」。
-  - **SECURITY_WARNING 高亮是死代码**：后端 `recordRunIssues` 把 issue severity 硬编码 `"medium"` 且 `featureId=0`，App 红「!」徽标**永不触发**；真正的 security finding（`/api/intel/findings`）无客户端。
-  - 项目列表缺「模块」展示（`BackendApi.intelModules` 零调用方）；功能点 `anchor` 未渲染。
-  - 死代码：`intelRunDetail`/`featureRunTest` 无调用方（且后端仅 admin scope 可用，无碍）。
+- **Complete**: session-list entry (backendReady-gated) → project list → detail with four blocks
+  (features + unit tests + issues + fixes) → AI chat; all three wiring layers pass and match the
+  backend contract field by field; issue ack / feature linkage, fix apply (file/patch/branch) /
+  rollback / reject, diff preview, failed/empty/loading states all present.
+- **⚠️ Gaps (non-blocking, addressed 2026-09-22)**:
+  - `intel.gate.blocked`/`fix.suggested`/`fix.applied`/`chat.answer`/`env.ready` events were parsed
+    but had no notification/UI outlet (parsed to `Unit`); a gate failure only showed a "run failed"
+    Toast with no reason → **fixed**: all five event types now produce notifications
+    (`showGateBlockedNotification` etc.), and `startRun` failures surface the backend reason.
+  - After starting a test run, the run status **did not update automatically** (`intel.run.event`
+    was not consumed to refresh the list; manual refresh required) → **fixed**: a global
+    `IntelRunEventBus` was added; the push layer publishes `intel.run.event`, the project detail
+    screen subscribes and merges the run list in real time by projectId; terminal run states also
+    refresh the issues/fixes blocks.
+  - A failed `loadRunResults` was **permanently cached as empty** (the idempotency guard made
+    retry impossible on this screen) → **fixed**: failures no longer write an empty cache; a
+    `runResultsFailed` set marks it and the UI shows "load failed, tap to retry".
+  - **SECURITY_WARNING highlight is dead code**: the backend's `recordRunIssues` hardcodes issue
+    severity to `"medium"` and `featureId=0`, so the app's red "!" badge **never triggers**; the
+    real security findings (`/api/intel/findings`) have no client.
+  - The project list lacks a "modules" display (`BackendApi.intelModules` has zero callers);
+    feature `anchor` is not rendered.
+  - Dead code: `intelRunDetail`/`featureRunTest` have no callers (and the backend allows admin
+    scope only, so harmless).
 
-## 二、服务器监控告警 —— ✅ 可上线
+## 2. Server monitoring alerts — ✅ shippable
 
-- **完备**：GET/POST `/api/alerts` 契约一致；服务器管理卡片（启用+阈值编辑 0-100 + 越线红点）；`alert.hardware` 推送→通知+落库；本地历史（SQLite 7 天）+ 60s 轮询 reconcile 去重。
-- **⚠️ 缺口（不阻塞）**：
-  - severity **warning/info 分级未落地**（解析后闲置，alert/ok 同渠道同优先级）。
-  - 告警历史**落库后不自动刷新 UI**（须手动点刷新）。
-  - 阈值=0 后端静默回退 90（UI 回显 90 与输入不符）。
-  - 删除服务器不清理历史（7 天自动过期）。
-  - 非 2xx 响应反序列化成空快照（401/500 显示「监控关闭」而非失败提示；与项目未开 expectSuccess 的全局模式一致）。
+- **Complete**: GET/POST `/api/alerts` contract matches; the server-management card
+  (enable + threshold editing 0-100 + threshold-crossing red dot); `alert.hardware` push →
+  notification + persisted history; local history (SQLite, 7 days) + 60s poll reconcile with
+  dedup.
+- **⚠️ Gaps (non-blocking)**:
+  - severity **warning/info tiering not implemented** (parsed but unused; alert/ok share the same
+    channel and priority).
+  - Alert history **does not auto-refresh the UI after persisting** (manual refresh required).
+  - A threshold of 0 silently falls back to 90 on the backend (UI echoes 90, mismatching input).
+  - Deleting a server does not clear its history (7-day auto-expiry).
+  - Non-2xx responses deserialize into an empty snapshot (401/500 render "monitoring off" instead
+    of a failure hint; consistent with the project-wide no-expectSuccess pattern).
 
-## 三、多设备同步 —— ✅ 可上线（已修 1 个正式缺陷）
+## 3. Multi-device sync — ✅ shippable (1 formal defect fixed)
 
-- **完备**：GET/PUT `/api/sync` 契约一致（key=global、revision 漂移检测）；SyncSettingsScreen 后端选项完整（仅 https/回环 + token 必填）；15 分钟 WorkManager 自动同步；`disconnect()` 只清同步凭据（已核修）。
-- **❌→✅ 已修**：`syncGetBundle` 的 404→null 处理失效（HttpClient 未开 expectSuccess，`ClientRequestException` 不抛，404 被反序列化成空 Bundle）→ **全新后端首次同步必现假 CONFLICT**。已改为按 `status==404` 显式返回 null（`BackendApi.kt:764`），首次同步恢复 MISSING_UPLOAD 语义。`read()/write()` 的 `catch (ClientRequestException)` 为防御性保留。
+- **Complete**: GET/PUT `/api/sync` contract matches (key=global, revision drift detection);
+  SyncSettingsScreen has the full backend option set (https/loopback only + mandatory token);
+  15-minute WorkManager auto sync; `disconnect()` clears only sync credentials (fix verified).
+- **❌→✅ fixed**: `syncGetBundle`'s 404→null handling was broken (HttpClient without
+  expectSuccess never throws `ClientRequestException`, so 404 deserialized into an empty Bundle)
+  → **first sync against a brand-new backend always produced a false CONFLICT**. Changed to
+  return null explicitly on `status==404` (`BackendApi.kt:764`), restoring the MISSING_UPLOAD
+  semantics on first sync. `read()/write()`'s `catch (ClientRequestException)` is kept as
+  defensive code.
 
-## 四、知识库 KB —— ✅ 可上线（1 处承诺缺口需决策）
+## 4. Knowledge base (KB) — ✅ shippable (1 commitment gap needs a decision)
 
-- **完备**：双入口（服务器管理 + 会话列表，均已指向已注册 `Kb` 路由）；集合列表/新建、文档列表、文本/文件摄入（大小预检+流式）、语义搜索（得分+片段），三层接线全通、契约一致。
-- **⚠️ 承诺缺口**：
-  - **删除集合/文档无 UI**：`BackendKbApi.deleteCollection/deleteDocument` 零调用方，而 ROADMAP 已勾选「集合列表/新建/删除」——**需决策**：补删除 UI 或按「重管理留 Web」改 ROADMAP 措辞。
-  - 文件摄入仅 `text/*`（`contentBase64` 无调用方，后端支持 PDF/Office multipart）。
-  - 大小上限错位：客户端 5 MiB vs 后端 JSON 体 4 MiB，4–5 MiB 文本会被 413 拒。
-  - KB 文档不可预览（后端无下载端点，ROADMAP 已标延后）。
+- **Complete**: dual entries (server management + session list, both now pointing to the
+  registered `Kb` route); collection list/create, document list, text/file ingestion
+  (size pre-check + streaming), semantic search (score + snippets); all three wiring layers pass
+  and the contract matches.
+- **⚠️ Commitment gap**:
+  - **No UI for deleting collections/documents**: `BackendKbApi.deleteCollection/deleteDocument`
+    have zero callers, yet ROADMAP already ticks "collection list/create/delete" — **decision
+    needed**: add the delete UI, or reword ROADMAP to "management stays on Web".
+    → **Resolved**: the delete UI was added (`KbScreen.kt:219`, `KbCollectionDetailScreen.kt:307`);
+    see §7 item 2.
+  - File ingestion accepts only `text/*` (`contentBase64` has no callers; the backend supports
+    PDF/Office via multipart).
+  - Size-cap mismatch: client 5 MiB vs backend JSON body 4 MiB — 4–5 MiB text gets a 413 reject.
+  - KB documents cannot be previewed (the backend has no download endpoint; ROADMAP marks it
+    deferred).
 
-## 五、生成文档 —— ✅ 可上线（预览按钮需决策）
+## 5. Document generation — ✅ shippable (preview button needs a decision)
 
-- **完备**：输入栏发起 → 生成对话框（PPT/Word/Excel）→ 消息卡片（下载/修改）→ 按意见 regenerate，契约一致、闭环。
-- **⚠️ 缺陷（需决策）**：
-  - **预览按钮运行期必然 401**：`DocumentPreviewSheet` 的 WebView 不带鉴权头，后端下载端点要求 `X-Web-Session`/`Authorization`（App token 走 WebView 两者皆无）。ROADMAP 将预览列为延后项，但按钮已暴露——**需决策**：隐藏预览入口，或修鉴权（注入 header）。
-  - 预留 API（listDocuments/getDocument/deleteDocument）无调用方（无害）。
+- **Complete**: input-bar entry → generation dialog (PPT/Word/Excel) → message card
+  (download/revise) → regenerate per instruction; contract matches and the loop is closed.
+- **⚠️ Defect (decision needed)**:
+  - **The preview button always 401s at runtime**: `DocumentPreviewSheet`'s WebView sends no auth
+    headers, while the backend download endpoint requires `X-Web-Session`/`Authorization` (the
+    app token reaches the WebView as neither). ROADMAP lists preview as deferred, but the button
+    is already exposed — **decision needed**: hide the preview entry, or fix auth (inject headers).
+    → **Resolved**: auth headers are now injected by `shouldInterceptRequest`
+    (`DocumentPreviewSheet.kt:166-188`); see §7 item 1.
+  - Reserved APIs (listDocuments/getDocument/deleteDocument) have no callers (harmless).
 
-## 六、发版就绪度
+## 6. Release readiness
 
-| 项 | 状态 |
+| Item | Status |
 |---|---|
-| `build.gradle.kts` versionCode/versionName | **8 / 3.0.0**（未 bump → 9 / 3.1.0，发版时改） |
-| `update.json` | 3.0.0（发 3.1.0 时更新 versionName/versionCode/APK URL/sha256） |
-| CHANGELOG | `[Unreleased] - 3.1.0`（发版时日期化） |
-| release-notes | Draft（发版时补 sha256/安装校验） |
-| 后端 | v2.1.0 开发中（最近提交：KB 完善/文档能力），App `MIN_BACKEND_VERSION=2.1.0` 待后端发版 |
-| 性能基线 / Baseline Profile | 已就绪 |
+| `build.gradle.kts` versionCode/versionName | **8 / 3.0.0** (not bumped → 9 / 3.1.0; change at release time) |
+| `update.json` | 3.0.0 (update versionName/versionCode/APK URL/sha256 when releasing 3.1.0) |
+| CHANGELOG | `[Unreleased] - 3.1.0` (date it at release) |
+| release-notes | Draft (add sha256/install verification at release) |
+| Backend | v2.1.0 in development (recent commits: KB improvements/document capabilities); App `MIN_BACKEND_VERSION=2.1.0` awaits the backend release |
+| Performance baseline / Baseline Profile | ready |
 
-## 七、上线前待决策项（非阻塞）
+## 7. Pre-release decision items (non-blocking)
 
-1. **文档预览按钮 401** —— 隐藏预览入口，或给 `DocumentPreviewSheet` 注入鉴权头（优先，功能价值高）。
-2. **KB 删除集合/文档 UI** —— 补 UI（约 1 屏 + 2 弹窗），或撤回 ROADMAP「删除」勾选改标「Web 管理」。
-3. **SECURITY_WARNING 高亮死代码** —— 后端修正 issue severity/featureId，或 App 接 `/api/intel/findings`（跨后端 v2.1.0 契约，属下一迭代）。
-4. ~~测试智能实时性（run 状态自动更新、失败可重试）、gate/fix/chat 通知出口~~ —— **已完善（2026-09-22）**：`IntelRunEventBus` 实时合并 run + `runResultsFailed` 可重试 + 五类事件通知出口 + `startRun` 失败原因，单测覆盖（`TestIntelRunEventsTest`）。
-5. 告警 severity 分级、历史自动刷新、阈值 0 语义、删服务器清理 —— 体验优化。
+1. ~~**Document preview button 401** — hide the preview entry, or inject auth headers into
+   `DocumentPreviewSheet` (preferred; high feature value).~~ — **resolved (2026-09-22)**: the auth
+   headers are injected. `DocumentPreviewSheet`'s `WebViewClient.shouldInterceptRequest`
+   (`DocumentPreviewSheet.kt:166-188`) rewrites same-origin requests through `previewClient` with
+   `.header("Authorization", "Bearer $token")`, gated on `isSameOrigin(url, backendUrl)`, so the
+   preview page and its internal `fetch` both carry the backend token. Same-origin validation is
+   the exact scheme+host+port comparison fixed as H7.
+2. ~~**KB delete collection/document UI** — add the UI (~1 screen + 2 dialogs), or retract the
+   ROADMAP "delete" tick and mark it "Web management".~~ — **resolved (2026-09-22)**: the delete UI
+   was added rather than retracting the tick. `KbScreen.kt:219` drives `DeleteCollectionDialog` →
+   `KbViewModel.deleteCollection` → `BackendKbApi.deleteCollection`; `KbCollectionDetailScreen.kt:307`
+   drives `DeleteDocumentDialog` → `KbCollectionDetailViewModel.deleteDocument` →
+   `BackendKbApi.deleteDocument`. ROADMAP's "collection list / create / delete + document list"
+   tick is therefore accurate.
+3. **SECURITY_WARNING highlight dead code** — the backend fixes issue severity/featureId, or the
+   app consumes `/api/intel/findings` (crosses the backend v2.1.0 contract; next iteration).
+4. ~~Test Intelligence real-time behavior (auto run-status updates, retryable failures),
+   gate/fix/chat notification outlets~~ — **addressed (2026-09-22)**: `IntelRunEventBus` merges
+   runs in real time + retryable `runResultsFailed` + notification outlets for the five event
+   types + `startRun` failure reasons, covered by unit tests (`TestIntelRunEventsTest`).
+5. Alert severity tiering, history auto-refresh, threshold-0 semantics, server-deletion cleanup —
+   UX polish.

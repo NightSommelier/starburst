@@ -7,12 +7,19 @@ Copyright(c) 2016 - Present, Clouds Studio Holding Limited. All rights reserved.
 Known issues and items that still require physical-device verification for v1.0.0.
 Items are removed from this list once fixed and verified.
 
-> **Device verification status：2026-09-16 已在小米 2308CPXD0C（7923efa2，Android 16 / MIUI）真机全量验证通过。**
-> Listing 下各项对应的代码修复均已生效，无需再真机复验：
-> - Terminal：扩展键行边框不重叠、AMOLED 抽屉收口、DEC 光标转义、resize 分发 ✅
-> - Chat & rendering：代码块 `=`/`-` 高亮、并行 subagent 卡片打开子会话、超大消息分页不 OOM、`error.data` 原始值渲染、远程会话提问卡片作答 ✅
-> - Navigation & connection：分享流（纯文本+文件，总是弹目标会话选择器）、长会话先显最新 10 条滚动稳定、通知/SSE 断线横幅 ✅
-> - Settings sync：跨设备同步为已知理论竞态/带宽限制，非真机可验证项（无改动）
+> **Device verification status: full verification passed on a Xiaomi 2308CPXD0C physical device
+> (Android 16 / MIUI) on 2026-09-16.**
+> The code fixes behind the items below are all in effect; no physical-device re-verification needed:
+> - Terminal: extra-key row borders no longer overlap, AMOLED drawer inset closure, DEC cursor
+>   escapes, resize dispatch ✅
+> - Chat & rendering: code-block `=`/`-` highlighting, parallel subagent cards opening their child
+>   session, paginated rendering of oversized messages without OOM, raw-value rendering of
+>   `error.data`, question cards answerable in remote sessions ✅
+> - Navigation & connection: share flow (plain text + files, always shows the target session
+>   picker), long sessions show the newest 10 messages first with stable scrolling, notification/SSE
+>   disconnect banners ✅
+> - Settings sync: cross-device sync remains a known theoretical race/bandwidth limitation, not a
+>   physical-device-verifiable item (no changes)
 
 ## Settings sync
 
@@ -74,31 +81,65 @@ Items are removed from this list once fixed and verified.
   resize dispatch have been corrected, but the complete interaction still needs physical-device
   verification (`TerminalEmulator.kt`).
 
-## 结构与行数拆分（2026-09-19）
+## Structure and line-count split (2026-09-19)
 
-- 为落实单文件 ≤1000 行 / 硬上限 1500 行，以下文件按「整块搬移 + 同包扩展函数 / 区域
-  composable」重构，逐行守恒校验、`compileDebugKotlin`、`./gradlew test`、`assembleDebug` 全绿：
-  聊天页（消息渲染、工具/文件/图片卡片、终端与扩展键盘、上下文用量/差异/模板对话框、
-  输入栏与 @ 文件提及）、Git 页五个对话框与 diff 视图、设置页全部弹窗、
-  后台连接的通知与断线重连（`ChatScreen*.kt`、`ChatInputBar.kt`、`ChatMessageBubble.kt`、
-  `ChatDialogs.kt`、`ChatOverlayCards.kt`、`ChatTerminal.kt`、`GitScreen*.kt`、
-  `SettingsScreen.kt`、`StarBurstConnectionService*.kt`、`EventReducer*.kt`、
-  `ChatViewModel*Ext.kt`）。
-- 2026-09-20 已补 JVM 侧可测的纯逻辑回归单测：`ChatInputBarDisplayTest`（16 例，模型名截断
-  `displayModelLabel` 含代理对安全、上下文预算比例/百分比/告警等级门槛
-  `contextBudgetRatio` / `contextBudgetPercentage` / `contextBudgetLevel`）与
-  `ContextBreakdownTest`（9 例，`computeContextBreakdown` 的向下折算、OTHER 兜底、
-  工具输入输出计量、零分段过滤）。
-- 2026-09-20 已在专属 AVD `starburst_test` headless 模拟器（Android 34）实测通过大部分拆分回归：
-  消息渲染/文件卡片、终端+扩展键盘、`Context usage` 弹窗/`Quick templates`、Git 页 diff 视图、
-  设置页主界面+语言对话框、后台 airplane mode 断线重连（`Connected→Connecting…→Connected`）、
-  Compose instrumentation `ChatInputBarModelLabelTest` 2 例 OK。详见 `docs/verification-checklist.md`。
-- **仅剩真机使用中观察项**（模拟器无真实服务器连接/迁移/弱网，无法一次性验证）：图片卡片、@ 提及弹层、
-  Git 五个对话框逐一、设置页其余弹窗、后台连接通知、背景唤醒策略真实耗电曲线——归入
-  `docs/verification-checklist.md`「使用中观察项」一节。
-- `TerminalEmulator.kt`（1278 行）、`ChatInputBar.kt`（1070 行）、`SettingsScreen.kt`（1073 行）、
-  `StarBurstConnectionService.kt`（1075 行）仍高于 1000 行目标：继续拆分别需要把 30 余个可变字段
-  （含 `cursorRow`/`cursorCol` 等 9 个 `private set` 属性）放宽为 `internal`/`internal set`、把巨型
-  composable 拆成长参数列表区域函数、再切通知/UI 区块——收益低于回归风险，故本轮不做；
-  `scripts/check-file-size.sh` 已把 1500 行硬上限接入 CI 防止继续恶化。
+- To enforce the single-file ≤1000-line target / 1500-line hard cap, the following files were
+  refactored using "whole-block moves + same-package extension functions / regional composables",
+  with line-for-line conservation checks and all of `compileDebugKotlin`, `./gradlew test`, and
+  `assembleDebug` green: the chat screen (message rendering, tool/file/image cards, terminal &
+  extra-key row, context-usage/diff/template dialogs, input bar & @ file mentions), the Git
+  screen's five dialogs and diff view, all settings dialogs, and the background connection's
+  notifications and disconnect/reconnect (`ChatScreen*.kt`, `ChatInputBar.kt`, `ChatMessageBubble.kt`,
+  `ChatDialogs.kt`, `ChatOverlayCards.kt`, `ChatTerminal.kt`, `GitScreen*.kt`,
+  `SettingsScreen.kt`, `StarBurstConnectionService*.kt`, `EventReducer*.kt`,
+  `ChatViewModel*Ext.kt`).
+- 2026-09-20: JVM-testable pure-logic regression unit tests were added:
+  `ChatInputBarDisplayTest` (16 cases: model-name truncation `displayModelLabel` incl.
+  surrogate-pair safety, and the context budget ratio/percentage/alert-level thresholds
+  `contextBudgetRatio` / `contextBudgetPercentage` / `contextBudgetLevel`) and
+  `ContextBreakdownTest` (9 cases: `computeContextBreakdown` downward breakdown, OTHER fallback,
+  tool input/output metering, zero-segment filtering).
+- 2026-09-20: most of the split regression was verified on the dedicated AVD `starburst_test`
+  headless emulator (Android 34): message rendering / file cards, terminal + extra keys, the
+  `Context usage` dialog / `Quick templates`, the Git diff view, the settings main screen +
+  language dialog, and background airplane-mode disconnect/reconnect
+  (`Connected→Connecting…→Connected`); Compose instrumentation `ChatInputBarModelLabelTest`
+  2 cases OK. See `docs/verification-checklist.md` for details.
+- **Only physical-device in-use observation items remain** (the emulator has no real server
+  connection/migration/weak network, so these cannot be verified in one pass): image cards,
+  the @ mention overlay, each of the five Git dialogs, the remaining settings dialogs, the
+  background connection notification, and the background-wakeup policy's real battery drain
+  curve — tracked in the "In-use observation items" section of `docs/verification-checklist.md`.
+- `scripts/check-file-size.sh` currently reports **13 Kotlin files over the 1000-line target** (none
+  over the 1500-line hard cap, so the gate does not block). Actual counts as of 2026-10-02:
+  `SessionListScreen.kt` (1446), `WorkbenchViewModel.kt` (1341), `TerminalEmulator.kt` (1278),
+  `ChatInputBar.kt` (1272), `KbCollectionDetailScreen.kt` (1248), `StarBurstConnectionService.kt`
+  (1231), `StarBurstConnectionServiceExt.kt` (1125), `SessionListViewModel.kt` (1120),
+  `WorkbenchScreen.kt` (1111), `SettingsScreen.kt` (1094), `TestIntelProjectScreen.kt` (1015),
+  `ServerProvidersScreen.kt` (1013), `ChatScreen.kt` (1004). This supersedes the earlier counts
+  recorded for this section (`ChatInputBar.kt` 1070 / `SettingsScreen.kt` 1073 /
+  `StarBurstConnectionService.kt` 1075, and a list that omitted the other over-target files).
+  Splitting these further would require relaxing 30+ mutable fields (including 9
+  `private set` properties such as `cursorRow`/`cursorCol`) to `internal`/`internal set`,
+  splitting the giant composables into long-parameter-list regional functions, and then carving
+  out notification/UI blocks — the benefit is lower than the regression risk, so this round
+  skips it; `scripts/check-file-size.sh` has wired the 1500-line hard cap into CI to prevent
+  further deterioration.
+
+## Repository history note (2026-10-01)
+
+- The private/special-use IP gate in `scripts/check-secrets.sh` now covers CGNAT `100.64/10` (plus
+  link-local `169.254/16`) on top of RFC1918. Re-running it over the tree flagged one CGNAT
+  test-server address (masked here as `100.66.1.x`; the literal is deliberately not restated, and
+  is recoverable with `git show 2d5998b`). It is **not** owner infrastructure: it sits in shared
+  carrier-grade NAT space and is not publicly routable.
+- It remains in committed history. It was introduced in `2d5998b`
+  (`app/src/test/kotlin/org/hiylo/starburst/data/api/ProviderCatalogFallbackTest.kt`) and last
+  modified in `5fbb354`; both are ancestors of `main`, and the literal is present in the trees of
+  the 17 commits from `2d5998b` through `1743e26`.
+- The working tree is clean: no tracked file contains the address, that fixture now uses the
+  RFC 5737 documentation range (`192.0.2.10`), and `scripts/check-secrets.sh --all` exits 0.
+- **Decision: ACCEPT and document — no history rewrite.** The literal is not a credential and the
+  address is not publicly routable, while rewriting shared history would invalidate every existing
+  clone and fork. The gate above, not a rewrite, is the durable control.
 

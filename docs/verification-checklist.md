@@ -1,150 +1,239 @@
-# 验证清单（3.0.0 审查修复）
+# Verification Checklist (3.0.0 review fixes)
 
-> 本文档记录本次代码审查修复后的验证结论。**凡可用模拟器/单测/源码同源证明的项均已验证通过**；
-> 剩余项依赖真机迁移、真实远端环境或长期使用（弱网、切网、云备份换机等），
-> 属**使用中观察项**，无法在开发环境一次性验证，改列于文末「使用中观察项」一节。
-> 代码层面（编译 + 全量单测 261 例）均已通过。
-> 更新：2026-09-20 —— 原生并发、CJK token 估算精度、上下文占用口径统一、Web UI 视觉
-> 均已验证通过；拆分回归（JVM 纯逻辑单测 + 专属 AVD `starburst_test` 模拟器实测）全部通过；
-> 上下文四处一致已补顶栏/输入框/详情弹窗三处同 dump 实测一致；
-> E2E Maestro 组合套件 5/5 全绿（smoke / add-server-connect / session-list / settings / workbench）。
-> 安全审计（Keystore 加密范围 + 云备份排除）结论已完成。
-> 更新：2026-09-21 —— 卡通风格层完善（圆体标题字体 Baloo 2 + 墨线/贴纸图标 + shapes 圆角阶）、
-> 会话列表多选批量压缩、父会话借子会话状态显示「处理中」三项并入 3.0.0；
-> 全量单测 259→261 例（新增 `CrossServerSessionsTest` 子会话状态传播 2 例）全绿。
+> This document records the verification verdict after this round of code-review fixes.
+> **Everything provable via emulator/unit tests/source cross-checking has been verified and passed**;
+> the remaining items depend on real-device migration, a real remote environment, or long-term use
+> (weak network, network switching, cloud-backup device migration, etc.) and are **in-use
+> observation items** — they cannot be verified in one pass in a dev environment and are listed in
+> the "In-use observation items" section at the end.
+> Code level (compile + full unit-test suite, 261 cases) has passed.
+> Update 2026-09-20 — native concurrency, CJK token-estimation accuracy, unified context-usage
+> semantics, and Web UI visuals are all verified; the split regression (JVM pure-logic unit tests +
+> real runs on the dedicated AVD `starburst_test` emulator) fully passed;
+> the context-usage figures now agree in four places, verified with same-dump measurements across
+> the top bar / input bar / detail dialog;
+> the E2E Maestro combined suite passed 5/5 (smoke / add-server-connect / session-list / settings
+> / workbench).
+> The security audit (Keystore encryption scope + cloud-backup exclusion) verdict is complete.
+> Update 2026-09-21 — the cartoon style layer polish (rounded display font Baloo 2 + ink-line/
+> sticker icons + shapes corner ramp), session-list multi-select batch compress, and the parent
+> session borrowing a child's "processing" status were folded into 3.0.0;
+> the full unit suite grew 259→261 cases (2 new `CrossServerSessionsTest` cases for child-status
+> propagation), all green.
 
-## 安全审计结论（已完成）
+## Security audit verdict (complete)
 
-App 全部持久化位置中，用 Android Keystore 密钥（`starburst_sync_secrets`）加密的数据**只有两处**，且均已从云备份/换机迁移中排除：
+Across all of the app's persistence locations, data encrypted with the Android Keystore key
+(`starburst_sync_secrets`) exists in **exactly two places**, both already excluded from
+cloud backup / device-migration restore:
 
-| 存储位置 | 内容 | 云备份排除 |
+| Storage location | Contents | Excluded from cloud backup |
 |---|---|---|
 | `shared_prefs/sync_secrets.xml` | github_token / webdav_password / sync_passphrase / llm_provider_api_key | ✅ |
-| `files/datastore/starburst_prefs.preferences_pb` | 加密的服务器列表（含密码/SSH） | ✅ |
+| `files/datastore/starburst_prefs.preferences_pb` | encrypted server list (incl. passwords/SSH) | ✅ |
 
-其余 prefs（`locale`、`disconnected_servers`、widget snapshot）非 Keystore 加密数据，无换机密文不可解风险。
+The remaining prefs (`locale`, `disconnected_servers`, widget snapshot) hold no Keystore-encrypted
+data, so there is no undecryptable-ciphertext risk on device migration.
 
-**遗留项已清零**：`install.sh` 下载的二进制 SHA-256 校验已随 starburst-backend **v2.0.1** 补齐
-（下载后与 release 的 `SHA256SUMS` 比对，不匹配即删产物并 `exit 1`；无校验和/非 http(s) 来源降级为
-警告跳过，`STARBURST_SKIP_CHECKSUM=1` 可显式跳过）。App `REQUIRED_BACKEND_VERSION` 已同步为 `2.0.1`，
-一键安装按该 tag 拉取 `install.sh`，校验自动生效。
-
----
-
-## 一、已验证项（编译 / 单测 / 模拟器可验证的均已通过）
-
-### 1. 原生并发（use-after-free 修复）✅ 已验证通过（2026-09-20）
-- [x] 端侧 LLM 流式生成中触发退出/切模型（release），无 Scudo use-after-free 崩溃。
-- [x] 按住说话时取消（releaseStream）、连续多次按住松手，无 native crash。
-- [x] 生成/识别中杀进程，无崩溃日志。
-
-### 2. CJK token 估算 ✅ 估算精度已验证通过（2026-09-20）
-- [x] 中文长会话下对照服务端真实 token 数，预算指示器占比合理。
-- [x] 长模型名已在底部选择栏截断（`MODEL_LABEL_MAX_CHARS=24` + 省略号），预算圆环与预算文字不再被挤出屏幕。（模拟器 Compose instrumentation 实测：`ChatInputBarModelLabelTest` 2 例通过）
-
-### 3. 上下文占用口径统一 ✅ 模拟器实测通过（13:37 / 14:34 包）
-> 修复前：顶栏副标题用「每轮 tokens.input 累加」（各轮都含历史上下文，相加虚高到兆级，如 13.1M）、
-> 圆环用最近一轮、弹窗/输入框各用其它口径，同一会话出现多个互不一致的 token 数，无法判断真实占用。
-> 修复（`ChatScreenTopBar` / `ChatContextUsageDialog` / `ChatScreenOverlayDialogs` / `ChatInputBar`）：
-> 统一为「当前上下文占用 = estimatedContextTokens / effectiveContextWindow」——顶栏副标题去累计兆数、
-> 顶栏圆环百分比/进度、上下文详情弹窗顶部「已用 X / 窗口」、输入框预算环四处同源。
-- [x] 模拟器（emulator-5554，13:37 包）实测：顶栏副标题 `/workspaces · 36.6k of 262.1k used`（估算/窗口，无累计兆数）。
-- [x] 模拟器（专属 AVD `starburst_test`，14:34 包）完整复查：顶栏 `3.1k of 1.0M used` / `33.7k of 1.0M used`；
-      输入框预算环 `0%` + `4.0k / 1.0M tokens`；**同一次 dump 三处一致**：顶栏 `19.2k of 1.0M used` = 输入框 `19.2k / 1.0M tokens` = 预算环 `2%`；
-      `Context usage` 弹窗顶部 `19.7k of 1.0M used` + `2%` 与前三处同源，breakdown（Messages/Provider/Input/Output/Reasoning/Cache）完整；
-      数字随会话 token 实时累积变化，非口径不一致。源码同源确认：`estimatedContextTokens`（15 处）+ `effectiveContextWindow`（12 处）。
-- [x] 同轮全量回归：release 日志分级（仅 REQUEST/RESPONSE/FROM 概要，`Authorization/Bearer/Basic` 零明文）、
-      直连按目录并发 `session/status`（无聚合探针）、E2E Maestro 组合套件 5/5 全绿均通过。
+**Leftover item cleared**: SHA-256 verification for binaries downloaded by `install.sh` was added
+with starburst-backend **v2.0.1** (after download, compare against the release's `SHA256SUMS`;
+on mismatch delete the artifact and `exit 1`; a missing checksum or non-http(s) source degrades to
+a warning-skip, and `STARBURST_SKIP_CHECKSUM=1` skips explicitly). The app's
+`REQUIRED_BACKEND_VERSION` is synced to `2.0.1`; one-click install pulls `install.sh` by that tag
+and verification applies automatically.
 
 ---
 
-## 二、Web UI 视觉清单 ✅ 已全部验证通过（2026-09-20）
+## 1. Verified items (everything provable by compile / unit tests / emulator has passed)
 
-- [x] 移动端窄屏：meta（模型/Agent/编号/时间）与待授权/待决问题次要块已隐藏，聊天区高度合理、无溢出遮挡。
-- [x] 快捷回复 textarea 与发送按钮紧凑度、底部不重叠。
-- [x] 超窄屏字号/间距、按钮不换行溢出。
-- [x] 桌面端不受媒体查询影响（范围正确）。
-- [x] 会话列表 240px、决策面板 72dvh 在常见分辨率下滚动正常。
+### 1. Native concurrency (use-after-free fix) ✅ verified (2026-09-20)
+- [x] Triggering exit / model switch (release build) during on-device LLM streaming causes no
+      Scudo use-after-free crash.
+- [x] Cancelling hold-to-talk (releaseStream) and repeated hold/release cycles cause no native crash.
+- [x] Killing the process mid-generation/recognition produces no crash logs.
 
----
+### 2. CJK token estimation ✅ accuracy verified (2026-09-20)
+- [x] Against the server's real token count in a long Chinese session, the budget indicator's
+      ratio is reasonable.
+- [x] Long model names are now truncated in the bottom selector (`MODEL_LABEL_MAX_CHARS=24` +
+      ellipsis); the budget ring and budget text are no longer pushed off screen.
+      (Measured via emulator Compose instrumentation: `ChatInputBarModelLabelTest` 2 cases pass.)
 
-## 三、拆分回归（2026-09-19 行数拆分，Compose 状态传递无 JVM 单测）✅ 模拟器实测通过
-
-JVM 层可测的纯逻辑已补回归单测（`ChatInputBarDisplayTest` 16 例覆盖模型名截断 /
-预算比例·百分比·告警等级门槛，`ContextBreakdownTest` 9 例覆盖上下文分布折算与
-OTHER 兜底），其余 Compose 渲染路径已在专属 AVD `starburst_test` 模拟器实测：
-
-- [x] 聊天页：消息渲染、工具/文件卡片（中文多行文本、文件卡片 `memory.md`/`memory-pitfalls.md`/`framework.md` 路径+文件名、工具「Edit」标记正常）。
-- [x] 聊天页：终端与扩展键盘（终端打开 + 扩展键盘 ESC/CTRL/ALT/HOME/END/PGUP/PGDN/Tab 正常）。
-- [x] 聊天页：上下文用量 / 模板对话框（`Context usage` 弹窗 breakdown 完整、`Quick templates` 列表正常）。
-- [x] 聊天页：输入栏与 @ 文件提及（`ChatInputBarModelLabelTest` 覆盖模型名截断；输入栏渲染正常）。
-- [x] Git 页：diff 视图（Repository/Branch/Changes/History 正常渲染）。
-- [x] 设置页：全部弹窗（主界面渲染 + 语言对话框正常）。
-- [x] 后台连接：断线重连（airplane mode 实测：断网 `Connected→Connecting…`，恢复 `→Connected` 自动重连）。
-
----
-
-## 四、2026-09-21 并入项验证（卡通风格层 + 批量压缩 + 父会话状态传播）
-
-- [x] **父会话借子会话状态显示「处理中」**（JVM 单测）：`CrossServerSessionsTest` 新增 2 例
-      —— 子会话 `Busy` 时列表项状态为 `Busy`（父会话自身 idle）；无子会话运行时保持 `Idle`。
-      全量单测 261 例全绿。推送侧改动（`handleBackendPushEvent` 不再丢弃子会话 idle/status 写入、
-      `applyPushedStatus` 单调守卫）代码路径已审查，行为等价的判定条件
-      （`isChildSession` / `shouldApplyPushStatus` / `childBusyByParent`）已被上述单测覆盖，
-      真机侧需实跑一个 subagent 任务确认列表与工作台同步显示「处理中」。
-- [x] **卡通风格层**（源码 + 编译）：圆体标题字体 Baloo 2 三份静态权重已入 `res/font/`
-      （bold/extra_bold/semi_bold，共 ~268KB），OFL 声明入 `assets/licenses/Baloo2-OFL.txt`；
-      `Type.kt` 仅替换 display/label 字族，`body*` 与等宽代码保持系统字体，中文正文不受影响；
-      `CartoonInkIcon` / `CartoonStickerIcon` 两个包装器 + `MaterialTheme.shapes` 圆角阶
-      全链路接入。release 编译通过（字体资源进包无缺失）。
-- [x] **会话列表多选批量压缩**（源码 + 编译）：多选顶栏 Compress 逐项 summarize，
-      逐会话用自身模型、回退服务器默认模型，语义对齐单会话 Compact 菜单项。
-- [ ] 上述三项的模拟器/真机视觉与交互实测尚未补跑（本轮并入以编译 + 单测 + 源码同源为准）。
+### 3. Unified context-usage semantics ✅ verified on emulator (13:37 / 14:34 builds)
+> Before the fix: the top-bar subtitle summed "per-turn tokens.input" (each turn includes history
+> context, so the sum inflated to megabyte-scale numbers such as 13.1M), the ring used the latest
+> turn, and the dialog/input bar used other semantics — the same session showed several mutually
+> inconsistent token figures with no way to judge real usage.
+> Fix (`ChatScreenTopBar` / `ChatContextUsageDialog` / `ChatScreenOverlayDialogs` / `ChatInputBar`):
+> unified to "current context usage = estimatedContextTokens / effectiveContextWindow" — the top-bar
+> subtitle drops the cumulative megabyte figure; the top-bar ring shows percentage/progress; the
+> context-detail dialog header shows "used X / window"; the input bar shows the budget ring — four
+> places, one source of truth.
+- [x] Emulator (emulator-5554, 13:37 build) measured: top-bar subtitle `/workspaces · 36.6k of
+      262.1k used` (estimate/window, no cumulative megabytes).
+- [x] Emulator (dedicated AVD `starburst_test`, 14:34 build) full re-check: top bar
+      `3.1k of 1.0M used` / `33.7k of 1.0M used`; input-bar budget ring `0%` + `4.0k / 1.0M tokens`;
+      **three places agree within one dump**: top bar `19.2k of 1.0M used` = input bar
+      `19.2k / 1.0M tokens` = budget ring `2%`;
+      the `Context usage` dialog header `19.7k of 1.0M used` + `2%` shares the same source as the
+      previous three; the breakdown (Messages/Provider/Input/Output/Reasoning/Cache) is complete;
+      the numbers move in real time with session tokens — not a semantics mismatch. Source
+      cross-check confirms: `estimatedContextTokens` (15 occurrences) + `effectiveContextWindow`
+      (12 occurrences).
+- [x] Same-turn full regression passed: release log levels (only REQUEST/RESPONSE/FROM summaries;
+      zero plaintext `Authorization/Bearer/Basic`), per-directory concurrent `session/status`
+      probes on direct connections (no aggregated probe), and the E2E Maestro combined suite 5/5 green.
 
 ---
 
-## 五、使用中观察项（模拟器/单测无法一次性验证，需真机迁移、真实远端或长期弱网使用中观察）
+## 2. Web UI visual checklist ✅ all verified (2026-09-20)
 
-以下项代码路径已审查、编译与单测覆盖，但结论依赖真实使用环境，**不设未完成/待验证标记**：
-
-- **多模型会话四处口径复核**：顶栏/圆环/详情弹窗/输入框预算环在 1.0M 窗口模型会话下的一致性（模拟器仅顶栏+输入框实测；圆环仅子会话显示，源码同源已保证）。
-- **未读红点改推送（9b95e2c）**：弱网下会话有新活动/读后清除的未读刷新及时性（推送驱动，不再 10s 轮询）。
-- **网络弱网 / 切换**：WiFi↔流量的切网自愈、弱网下 `session/status` 并发与聚合收益、推送断线兜底轮询及时性、通知/SSE 断线横幅。
-- **Keystore + 云备份排除**：配好服务器（含密码/SSH）→ 云备份 → 换机恢复不留不可解密脏数据；`sync_secrets` 四类 token 换机无残留。
-- **一键安装**：真实 SSH 远端按 `v{REQUIRED_BACKEND_VERSION}` 下载对应二进制；token 经环境变量注入生效、health 探测通过、持久化正确；非 18880 端口场景 App 提示显式填 backendUrl。
-- **加密备份全链路**：导出 → 换设备导入，服务器/模板/收藏恢复正确；错误口令被拒。
-- **其余真机视觉尾项**：图片卡片、@ 提及弹层、Git 五个对话框、设置页其余弹窗、后台连接通知、背景唤醒策略在真实耗电曲线上的表现。
+- [x] Mobile narrow screens: meta (model/agent/number/time) and the pending-authorization/pending-decision
+      secondary blocks are hidden; chat-area height is sane with no overflow/clipping.
+- [x] Quick-reply textarea and send button are compact and do not overlap at the bottom.
+- [x] Ultra-narrow screens: font sizes/spacing keep buttons from wrapping or overflowing.
+- [x] Desktop is unaffected by the media queries (ranges are correct).
+- [x] Session list 240px and decision panel 72dvh scroll correctly at common resolutions.
 
 ---
 
-# 3.1.0 验证清单（测试智能 M9 客户端 + 硬件告警 + 后端同步）
+## 3. Split regression (2026-09-19 line-count split; Compose state passing has no JVM unit tests) ✅ verified on emulator
 
-> 更新：2026-09-22 —— 代码已实现（未提交），`compileDebugKotlin` + `testDebugUnitTest`
-> **272 例全绿**（新增 `IntelModelsTest` / `TestIntelUiTest` / `BackendSyncTransportTest`）；
-> `check-secrets.sh --all` 干净。后端配套版本升至 **v2.1.0**（`BackendGate.MIN_BACKEND_VERSION`）。
-> 本文档只记录本次 3.1.0 功能的**验证结论**，3.0.0 及之前的行在上一节已完结。
+JVM-testable pure logic gained regression unit tests (`ChatInputBarDisplayTest` 16 cases covering
+model-name truncation / budget ratio·percentage·alert thresholds, `ContextBreakdownTest` 9 cases
+covering the context breakdown conversion and the OTHER fallback); the remaining Compose render
+paths were verified on the dedicated AVD `starburst_test` emulator:
 
-## 已验证通过（编译 / JVM 单测 / 源码同源）
+- [x] Chat screen: message rendering, tool/file cards (multi-line Chinese text, file cards
+      `memory.md`/`memory-pitfalls.md`/`framework.md` path+filename, tool "Edit" markers correct).
+- [x] Chat screen: terminal & extra-key row (terminal opens; ESC/CTRL/ALT/HOME/END/PGUP/PGDN/Tab
+      all work).
+- [x] Chat screen: context usage / template dialogs (`Context usage` dialog breakdown complete,
+      `Quick templates` list correct).
+- [x] Chat screen: input bar & @ file mentions (`ChatInputBarModelLabelTest` covers model-name
+      truncation; input bar renders correctly).
+- [x] Git screen: diff view (Repository/Branch/Changes/History render correctly).
+- [x] Settings screen: all dialogs (main screen renders + language dialog correct).
+- [x] Background connection: disconnect/reconnect (airplane-mode measured:
+      offline `Connected→Connecting…`, recovery `→Connected` auto-reconnect).
 
-- 网络层：`BackendApi` +23 方法（`/api/intel/*` 19 + `/api/alerts` 2 + `/api/sync` 2）URL/请求体/鉴权与后端契约一致（`/api/intel/features` 的 projectId 在 query、`features/test` 在 body、`run` 无 scope/command 参数、endsJson/diffJson 字符串包裹需二次解析）——单测 `IntelModelsTest` 覆盖 `parseStringListJson`/`parseDiffJson`/`IntelFeature.ends()`。
-- 推送层：`BackendPushListener.intelEventFlow` 白名单 + `IntelPushParser` 对 9 类事件（`intel.run.event`、`alert.hardware`、`intel.gate.blocked`、`intel.env.ready`、`intel.audit.finding`、`intel.fix.suggested`、`intel.fix.applied`、`intel.feature.chat.answer`、`task.event`）严格字段名解析、失败返回 null——解析逻辑为纯函数，可单测。
-- 通知克制性：仅 run 终态（passed/failed）、硬件越线/恢复、审计发现（warning/critical）发通知；queued/running 静默。
-- 硬件告警 UI：服务器管理页监控卡片（启用 + CPU/内存/磁盘当前值 + 阈值 0-100 编辑 + 越线红点）——后端语义已对齐（阈值仅状态迁移推送、无历史端点、severity/payload omitempty、value>threshold 严格大于、阈值 0 静默回退 90）。
-- 多设备同步：`BackendSyncTransport.read/write`（404→null、失败抛 `SyncHttpException`、key=`global`、base revision 漂移检测）；`SyncConfig.backendToken` 已从 DataStore 迁入 `LocalSyncSecretStore`（Keystore AES-GCM）。单测 `BackendSyncTransportTest` 覆盖 enabled 迁移与唯一存储约束。
-- 版本门控：`BackendGate` 拆 `MIN_BACKEND_VERSION`/`INSTALL_BACKEND_VERSION`（均 2.1.0），升级提示与一键安装分别读取；低版本后端（<2.1.0）入口隐藏。
-- 工程清理：`update.json` 指向 v3.0.0（versionCode 8 + sha256）；ROADMAP 过期勾选已修。
+---
 
-## 待真机 / 真实后端验证（使用中观察项）
+## 4. Verification of items folded in on 2026-09-21 (cartoon style layer + batch compress + parent-status propagation)
 
-- **测试智能端到端**：连 ≥2.1.0 后端 → 会话列表「测试智能」入口 → 项目列表 → 功能点 AI 对话返回带上下文归因答案、单测 run 完成推送通知、问题 ack / 挂功能点、修复建议 apply(file/patch/branch) 后 diff 可见。模拟器无真实后端项目实体，未跑通闭环。
-- **硬件告警真机**：后端 60s 采样的越线 → `alert.hardware` 推送通知（越线/恢复两条）；阈值编辑生效。
-- **后端同步真机**：设置页选 starburst-backend → 输入 URL+token → 同步成功、revision 漂移后他端 re-pull；换机恢复。
-- **`intelEventFlow` 与镜像通道共存**：后端镜像直连切换 / 裸直连模式下第二条 WS 订阅的连接与退避行为。
+- [x] **Parent session borrowing a child's "processing" status** (JVM unit tests):
+      `CrossServerSessionsTest` gained 2 cases — when a child session is `Busy` the list row shows
+      `Busy` (parent itself idle); with no child running it stays `Idle`.
+      Full suite: 261 cases green. The push-side changes (`handleBackendPushEvent` no longer drops
+      child idle/status writes, `applyPushedStatus` monotonic guard) were code-reviewed; the
+      equivalent-behavior predicates (`isChildSession` / `shouldApplyPushStatus` /
+      `childBusyByParent`) are covered by the unit tests above; on a real device, one subagent run
+      is still needed to confirm list & workbench both show "processing".
+- [x] **Cartoon style layer** (source + compile): the rounded display font Baloo 2 with three
+      static weights is in `res/font/` (bold/extra_bold/semi_bold, ~268KB total), OFL notice in
+      `assets/licenses/Baloo2-OFL.txt`; `Type.kt` swaps only the display/label families while
+      `body*` and monospace code keep system fonts (Chinese body text unaffected);
+      `CartoonInkIcon` / `CartoonStickerIcon` wrappers + the `MaterialTheme.shapes` corner ramp
+      are wired end to end. Release build passes (font resources packaged, nothing missing).
+- [x] **Session-list multi-select batch compress** (source + compile): the multi-select top bar's
+      Compress summarizes item by item, each session using its own model with fallback to the
+      server default, semantically aligned with the single-session Compact menu item.
+- [ ] The emulator/real-device visual & interaction verification of the three items above has not
+      been run yet (this round they were folded in on the basis of compile + unit tests + source
+      cross-check).
 
-### 知识库（KB）客户端（3.1.0 接线补齐）
+---
 
-代码已接线（编译 + 单测全绿）：服务器管理页 → 知识库 → 集合列表/新建/删除 → 集合详情 →
-摄入（文本/文件 `ACTION_OPEN_DOCUMENT`）→ 语义搜索（得分 + 片段）。
-- 编译 + 全量 JVM 单测通过；入口仅后端就绪时显示（复用 `isBackendReady` 门控）。
-- **待真机/真实后端验证**：连 ≥2.1.0 后端摄入中英文档 → 搜索命中与得分合理性；大文件摄入（5MB 上限）与后端向量化的耗时交互；删除集合的级联确认。
-- 遗留重复套（`ui/screens/knowledge/` 5 文件 + `strings_knowledge.xml`）已删除——功能是当前实现子集且未接线；`/api/documents/*` 生成 API 客户端已就绪，文档预览（`DocumentPreviewSheet`）待后端提供下载端点后接入。
+## 5. In-use observation items (not verifiable in one pass on an emulator/unit tests; require real-device migration, real remote environments, or long-term weak-network use)
+
+The code paths below were reviewed and are covered by compile and unit tests, but their verdicts
+depend on real usage environments — **no incomplete/pending markers are set**:
+
+- **Four-place context figures re-check in multi-model sessions**: consistency of top bar / ring /
+  detail dialog / input-bar budget ring on 1.0M-window model sessions (the emulator measured only
+  top bar + input bar; the ring shows for child sessions only; source cross-check already
+  guarantees a single source).
+- **Unread red dot switched to push (9b95e2c)**: timeliness of unread refresh on new activity /
+  clear-after-read under weak network (push-driven, no more 10s polling).
+- **Weak network / network switching**: WiFi↔cellular self-healing, `session/status` concurrency
+  vs aggregation benefit under weak network, push-disconnect fallback polling timeliness,
+  notification/SSE disconnect banners.
+- **Keystore + cloud-backup exclusion**: configured servers (incl. passwords/SSH) → cloud backup →
+  restore on a new device leaves no undecryptable dirty data; no residue of the four
+  `sync_secrets` token classes across device migration.
+- **One-click install**: a real SSH remote downloads the matching binary by `v{REQUIRED_BACKEND_VERSION}`;
+  token injected via environment variable takes effect, health probe passes, persistence correct;
+  on a non-18880 port the app prompts to enter `backendUrl` explicitly.
+- **Encrypted backup end to end**: export → import on another device; servers/templates/favorites
+  restore correctly; a wrong passphrase is rejected.
+- **Remaining real-device visual tails**: image cards, the @ mention overlay, the five Git dialogs,
+  the remaining settings dialogs, the background connection notification, and the background-wakeup
+  policy's behavior on a real battery-drain curve.
+
+---
+
+# 3.1.0 Verification Checklist (Test Intelligence M9 client + hardware alerts + backend sync)
+
+> Update 2026-09-22 — code implemented (uncommitted); `compileDebugKotlin` + `testDebugUnitTest`
+> **all 272 cases green** (new `IntelModelsTest` / `TestIntelUiTest` / `BackendSyncTransportTest`);
+> `check-secrets.sh --all` clean. The paired backend version is now **v2.1.0**
+> (`BackendGate.MIN_BACKEND_VERSION`).
+> This document records only the **verification verdicts** for the 3.1.0 features; the 3.0.0-and-
+> earlier lines above are closed.
+
+## Verified pass (compile / JVM unit tests / source cross-check)
+
+- Network layer: `BackendApi` +23 methods (`/api/intel/*` 19 + `/api/alerts` 2 + `/api/sync` 2)
+  match the backend contract on URLs/request bodies/auth (`/api/intel/features` carries projectId
+  in the query, `features/test` in the body, `run` has no scope/command params,
+  endsJson/diffJson are string-wrapped and need a second parse) — unit test `IntelModelsTest`
+  covers `parseStringListJson`/`parseDiffJson`/`IntelFeature.ends()`.
+- Push layer: `BackendPushListener.intelEventFlow` whitelist + `IntelPushParser` strictly parse
+  9 event types (`intel.run.event`, `alert.hardware`, `intel.gate.blocked`, `intel.env.ready`,
+  `intel.audit.finding`, `intel.fix.suggested`, `intel.fix.applied`, `intel.feature.chat.answer`,
+  `task.event`) by field name and return null on failure — parsing is a pure function, unit
+  testable.
+- Notification restraint: notifications fire only for run terminal states (passed/failed),
+  hardware threshold crossing/recovery, and audit findings (high/critical); queued/running are
+  silent.
+- Hardware alert UI: the server-management monitoring card (enable + CPU/memory/disk current
+  values + threshold 0-100 editing + threshold-crossing red dot) — backend semantics aligned
+  (threshold crossings push only on state transition, no history endpoint, severity/payload
+  omitempty, value>threshold is strict, threshold 0 silently falls back to 90).
+- Multi-device sync: `BackendSyncTransport.read/write` (404→null, failures throw
+  `SyncHttpException`, key=`global`, base-revision drift detection); `SyncConfig.backendToken`
+  migrated from DataStore into `LocalSyncSecretStore` (Keystore AES-GCM). Unit test
+  `BackendSyncTransportTest` covers the enabled migration and the unique-storage constraint.
+- Version gating: `BackendGate` splits `MIN_BACKEND_VERSION`/`INSTALL_BACKEND_VERSION`
+  (both 2.1.0); the upgrade hint and one-click install read them separately; entries are hidden
+  for backends below 2.1.0.
+- Repo hygiene: `update.json` points at v3.0.0 (versionCode 8 + sha256); stale ROADMAP ticks fixed.
+
+## Pending real-device / real-backend verification (in-use observation items)
+
+- **Test Intelligence end to end**: connect to a ≥2.1.0 backend → session-list "Test Intelligence"
+  entry → project list → feature AI chat returns context-attributed answers; a finished unit-test
+  run produces a push notification; issue ack / feature linkage; after applying a fix suggestion
+  (file/patch/branch) the diff is visible. The emulator has no real backend project entities, so
+  the closed loop was not exercised.
+- **Hardware alerts on a real device**: a backend 60s-sampled threshold crossing →
+  `alert.hardware` push notifications (crossing + recovery pair); threshold editing takes effect.
+- **Backend sync on a real device**: settings → choose starburst-backend → enter URL+token → sync
+  succeeds; after a revision drift the other side re-pulls; device-migration restore.
+- **`intelEventFlow` coexisting with the mirror channel**: connection and backoff behavior of the
+  second WS subscription under backend-mirror direct switching / bare direct mode.
+
+### Knowledge base (KB) client (3.1.0 wiring completion)
+
+Code is wired (compile + unit tests green): server management → Knowledge Base → collection
+list/create/delete → collection detail → ingestion (text/file `ACTION_OPEN_DOCUMENT`) → semantic
+search (score + snippets).
+- Compile + full JVM unit suite pass; the entry shows only when the backend is ready (reuses the
+  `isBackendReady` gate).
+- **Pending real-device/real-backend verification**: ingest EN/ZH documents against a ≥2.1.0
+  backend → search hit quality and score sanity; large-file ingestion (5MB cap) interaction with
+  backend vectorization latency; cascading delete confirmation for collections.
+- The leftover duplicate suite (`ui/screens/knowledge/` 5 files + `strings_knowledge.xml`) was
+  deleted — it was a subset of the current implementation and unwired; the `/api/documents/*`
+  generated-document API client is ready; document preview (`DocumentPreviewSheet`) will be wired
+  once the backend provides a download endpoint.

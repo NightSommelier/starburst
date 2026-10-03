@@ -19,7 +19,7 @@ Copyright(c) 2016 - Present, Clouds Studio Holding Limited. All rights reserved.
 
 ## 1.1.0 (Released ✅)
 
-### Server & service management — [#16](https://github.com/hiylo/starburst/issues/16)
+### Server & service management — [#16](https://github.com/NightSommelier/starburst/issues/16)
 
 - [x] Persistent PTY promoted to a "connection-level shared session" (was previously scoped to the Git page)
 - [x] Server basics: CPU / memory / disk (PTY runs `free` / `df` / `/proc`)
@@ -28,24 +28,24 @@ Copyright(c) 2016 - Present, Clouds Studio Holding Limited. All rights reserved.
 - [x] Service restart (PTY runs the restart command; feasibility depends on deployment/permissions)
 - [x] Server health monitoring dashboard
 
-### File editing — [#17](https://github.com/hiylo/starburst/issues/17)
+### File editing — [#17](https://github.com/NightSommelier/starburst/issues/17)
 
 - [x] File browser supports edit & save (writes go through the persistent PTY, e.g. `cat > path` / `tee`)
 - [x] Undo / redo, save-conflict prompt
 
-### Git deepening — [#18](https://github.com/hiylo/starburst/issues/18)
+### Git deepening — [#18](https://github.com/NightSommelier/starburst/issues/18)
 
 - [x] Selective staging (check files / hunks)
 - [x] `fetch` / `stash` / `tag`
 - [x] Commit history load-more (pagination)
 - [x] Unpushed-commit indicator
 
-### On-device model expansion — [#19](https://github.com/hiylo/starburst/issues/19)
+### On-device model expansion — [#19](https://github.com/NightSommelier/starburst/issues/19)
 
 - [x] Code completion (inline completion)
 - [x] Conversation summary / code explanation
 
-### Chat experience — [#20](https://github.com/hiylo/starburst/issues/20)
+### Chat experience — [#20](https://github.com/NightSommelier/starburst/issues/20)
 
 - [x] Markdown enhancements (mermaid diagrams, inline images, code-block copy/line numbers/run)
 - [x] Message actions (edit & resend, regenerate, stop)
@@ -87,7 +87,7 @@ Copyright(c) 2016 - Present, Clouds Studio Holding Limited. All rights reserved.
 
 ## 1.4.0 (Released ✅)
 
-> 2026-09-14. Server management, AGENTS.md 工作流与工程重构。
+> 2026-09-14. Server management, AGENTS.md workflow and engineering refactoring.
 
 ### Server management
 
@@ -118,7 +118,7 @@ Copyright(c) 2016 - Present, Clouds Studio Holding Limited. All rights reserved.
 > Released 2026-09-21. Test Intelligence roadmap kickoff + client increments: project overview,
 > battery optimization, lifecycle-aware polling, E2E test suite, refined Flame theme.
 
-### Test Intelligence (智能测试体系)
+### Test Intelligence (intelligent testing system)
 
 > Backend: starburst-backend `docs/TEST_INTELLIGENCE.md`. A tech-stack-agnostic testing subsystem
 > (`internal/intel`) shared by Web and APP via `/api/intel/*`. Covers repository understanding &
@@ -142,7 +142,7 @@ Copyright(c) 2016 - Present, Clouds Studio Holding Limited. All rights reserved.
 #### Automation & push
 - `intel-run` rules (GitLab push/tag webhook + cron); `intel.*` WS events to APP; `/api/batch` multi-project parallel analyze/run.
 
-### Client features (客户端增量)
+### Client features (client-side increments)
 
 - [x] Token/usage stats (per session/server; backend aggregation + workbench card)
 - [x] Prompt template library (add/edit/delete) + session templates (directory + system prompt + model + prompt one-tap reuse)
@@ -152,14 +152,15 @@ Copyright(c) 2016 - Present, Clouds Studio Holding Limited. All rights reserved.
 - [x] Cartoon style: rounded display font (Baloo 2, OFL) + inked/sticker icon wrappers +
   `MaterialTheme.shapes` ramp
 - [x] Session list multi-select Compress (batch compact)
-- [ ] Server monitoring alerts (CPU/memory/disk thresholds → push) →3.1.0
+- [x] Server monitoring alerts (CPU/memory/disk thresholds → push) *(delivered in 3.1.0)*
 - [x] Notification quick actions (RemoteInput reply to launch a task)
 - [x] Material You dynamic color theme (Theme.kt `dynamicColor`, API 31+, with preference + tests)
 - [x] On-device code completion/rewrite model (MNN, offline)
 - [x] In-editor AI actions (select code → explain/refactor/write tests → diff preview then apply)
 - [x] Session timeline replay (agent decision-process visualization)
 - [x] Custom system prompt + context-budget management (per server)
-- [ ] Multi-device/team sync (backend sync of config/templates/bookmarks/archives) →3.1.0 (backend channel)
+- [x] Multi-device/team sync (backend sync of config/templates/bookmarks/archives) *(delivered
+      in 3.1.0, backend channel)*
 - [x] Encrypted backup & restore (Keystore backup bundle, cross-device restore)
 
 ### Engineering quality
@@ -168,7 +169,9 @@ Copyright(c) 2016 - Present, Clouds Studio Holding Limited. All rights reserved.
   `EventReducer` is already covered by `EventReducerTest` (33 cases), as is the encrypted backup
   envelope (`PasswordCrypto` round-trip and wrong-passphrase rejection in `BackupPayloadTest`).
   2026-09-21: 261 JVM unit tests + 2 Compose instrumentation + 5 Maestro E2E flows all green.
-- [ ] Startup time / memory / jank performance baseline →3.1.0
+- [x] Startup time / memory performance baseline →3.1.0 (script + `docs/performance-baseline.md`
+      + Baseline Profile — see "Performance baseline + Baseline Profile" below)
+- [ ] Jank / frame-time instrumentation (no Compose macrobenchmark yet)
 
 ### Removed (product decision)
 
@@ -282,13 +285,17 @@ Copyright(c) 2016 - Present, Clouds Studio Holding Limited. All rights reserved.
 - [x] Network layer: `/api/intel/*` endpoints + data models (project/module/feature/run/result/issue/fix/chat)
 - [x] Push: consume `intel.*` events (run status, gate block, audit finding, fix suggest/apply, chat answer) + notifications
 - [x] Entry: "Test Intelligence" icon in session list / workbench (backendReady-gated)
-- [x] Project list screen: intel projects + modules + analysis status
-- [x] Project detail screen: feature list/detail (ends, source, anchor)
+- [x] Project list screen: intel projects + analysis status (no modules list — `BackendApi.intelModules` has zero callers)
+- [x] Project detail screen: feature list/detail (ends, source); the `anchor` field exists on
+      `IntelFeature` but is **not rendered**
 - [x] Single tests: start a run (project/module) + run list (status badge/progress) + per-case results (passed/failed)
 - [x] Issue loop: issue list (severity/location) + ack to resolved + link to feature
 - [x] Fix suggestions: list + diff preview + apply (file/patch/branch) + rollback/reject
 - [x] Feature AI chat: question history + context-bundled attribution answers
-- [x] SECURITY_WARNING highlight; friendly empty/error states
+- [x] Friendly empty/error states. SECURITY_WARNING highlight is **implemented but currently
+      unreachable** — the audit-finding notification fires at `high`/`critical`
+      (`StarBurstConnectionServiceGatewayExt.kt:327`), but the backend hardcodes issue severity to
+      `medium`, so the red "!" badge never triggers. Pending the backend severity fix.
 
 ### Server monitoring alerts → APP
 
@@ -335,10 +342,12 @@ Copyright(c) 2016 - Present, Clouds Studio Holding Limited. All rights reserved.
 - [x] Session sends carry knowledge-base context automatically (spliced in the backend
       `prompt_async` mirror-proxy layer; zero APP changes — chat messages route through
       the backend mirror via `resolveSendingConnection`, `3cb7f9a`)
+- [x] RAG context chip: the folded chip surfaces the spliced source count (`RagContextChip.kt`)
 - [ ] Optional: consume `X-Rag-Spliced` response header → "N sources brought in" / "no
-      relevant material found" hint (the folded RAG chip already surfaces the count)
+      relevant material found" hint (nothing in the APP reads the header yet; the folded RAG
+      chip already surfaces the count)
 - [ ] Source display for KB citations (doc / section, tap-through to preview; backend now
-      tags each `[来源N]` with the `#documentID`)
+      tags each `[来源N]` (the backend's CJK "source N" marker) with the `#documentID`)
 
 #### Document generation & iteration
 
@@ -369,4 +378,3 @@ Copyright(c) 2016 - Present, Clouds Studio Holding Limited. All rights reserved.
 - [x] Session archive to backend — long-press in session list / chat overflow menu → snapshot to backend archives; fixed upstream message-shape parsing so archives carry real transcript content *(released 1.3.0)*
 - [x] Backend integration — stats / rules / audit / tokens management screens (APP-token readable, no web-session login needed) *(released 1.4.0)*
 - [x] Voice input via backend streaming engine *(released 1.3.0 as server-side ASR fallback)*
-- [ ] Remaining engineering quality (unit tests, performance testing) — moved to 3.0.0
