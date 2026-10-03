@@ -29,6 +29,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
@@ -80,6 +81,7 @@ internal fun DocumentPreviewSheet(
     token: String,
     onDownload: ((url: String) -> Unit)? = null,
 ) {
+    val context = LocalContext.current
     val previewClient = remember {
         OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
@@ -122,7 +124,7 @@ internal fun DocumentPreviewSheet(
                     )
                 }
                 Text(
-                    text = "文档预览",
+                    text = stringResource(R.string.document_preview_sheet_title),
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.weight(1f),
                 )
@@ -144,9 +146,9 @@ internal fun DocumentPreviewSheet(
                 else -> Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
                     AndroidView(
                         modifier = Modifier.fillMaxSize(),
-                        factory = { context ->
-                            @SuppressLint("SetJavaScriptEnabled")
-                            val wv = WebView(context).apply {
+factory = { viewContext ->
+                                @SuppressLint("SetJavaScriptEnabled")
+                                val wv = WebView(viewContext).apply {
                                 layoutParams = ViewGroup.LayoutParams(
                                     ViewGroup.LayoutParams.MATCH_PARENT,
                                     ViewGroup.LayoutParams.MATCH_PARENT,
@@ -203,7 +205,11 @@ internal fun DocumentPreviewSheet(
                                     ) {
                                         if (request?.isForMainFrame == true) {
                                             isLoading = false
-                                            loadError = "预览页加载失败（${error?.errorCode ?: "网络错误"}）"
+                                            loadError = context.getString(
+                                                R.string.document_preview_load_failed,
+                                                error?.errorCode
+                                                    ?: context.getString(R.string.document_preview_error_network),
+                                            )
                                         }
                                     }
 
@@ -215,7 +221,9 @@ internal fun DocumentPreviewSheet(
                                         val requestUrl = request?.url?.toString() ?: return false
                                         if (isSameOrigin(requestUrl, backendUrl)) return false
                                         runCatching {
-                                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(requestUrl)))
+                                            viewContext.startActivity(
+                                                Intent(Intent.ACTION_VIEW, Uri.parse(requestUrl)),
+                                            )
                                         }
                                         return true
                                     }

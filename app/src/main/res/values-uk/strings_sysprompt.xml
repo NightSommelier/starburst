@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Індикатор бюджету контексту -->
+    <string name="sysprompt_context_budget">Токени: %1$s / %2$s</string>
+
+    <!-- Системний промпт &amp; ліміт контексту для кожного сервера -->
+    <string name="server_settings_sysprompt">Системний промпт</string>
+    <string name="server_settings_sysprompt_desc">Власні інструкції, що застосовуються під час запуску нової сесії</string>
+    <string name="server_settings_sysprompt_dialog_title">Системний промпт &amp; ліміт контексту</string>
+    <string name="server_settings_sysprompt_label">Системний промпт</string>
+    <string name="server_settings_sysprompt_hint">Вставляється під час надсилання першого повідомлення</string>
+    <string name="server_settings_context_limit_label">Ліміт контексту (токени)</string>
+    <string name="server_settings_context_limit_hint">Перевизначає вікно контексту, якщо модель його не повідомляє (типово 32768)</string>
+    <string name="sysprompt_save">Зберегти</string>
+</resources>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Діалог сервера: окремо адреса і порт -->
+    <string name="server_host">Адреса сервера</string>
+    <string name="server_host_hint">192.0.2.100</string>
+    <string name="server_port">Порт сервера</string>
+    <string name="server_port_hint">4096</string>
+    <string name="server_https">Використовувати HTTPS</string>
+    <string name="server_invalid_host">Введіть дійсну адресу сервера</string>
+
+    <!-- Діалог сервера: SSH (необов'язково) -->
+    <string name="server_ssh_section">SSH (необов\'язково)</string>
+    <string name="server_ssh_section_desc">Залиште порожнім, щоб підключитися напряму. Налаштуйте, щоб спрямувати з\'єднання через тунель і перезапускати службу через SSH.</string>
+
+    <!-- Діалог сервера: бекенд (необов'язково) -->
+    <string name="server_backend_section">Бекенд (необов\'язково)</string>
+    <string name="server_backend_section_desc">Токен для проксі starburst-backend на порту 18880. Залиште типове значення, щоб використовувати дзеркало; введіть хибне значення, щоб примусово встановити пряме з\'єднання.</string>
+    <string name="server_backend_token">Токен бекенда</string>
+    <string name="server_backend_token_hint">ocb_default</string>
+
+    <!-- Результат перезапуску через SSH -->
+    <string name="home_ssh_restart">Перезапустити через SSH</string>
+    <string name="home_ssh_restart_success">Команду перезапуску надіслано через SSH</string>
+    <string name="home_ssh_restart_failed">Не вдалося перезапустити через SSH</string>
+</resources>

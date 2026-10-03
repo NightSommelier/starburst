@@ -26,4 +26,8 @@
     <string name="document_revise_failed_detail">Revision failed: %1$s</string>
     <string name="document_download_failed">Failed to download document</string>
     <string name="document_downloaded">Document downloaded</string>
+    <!-- Document preview sheet (3.1.0) -->
+    <string name="document_preview_sheet_title">Document preview</string>
+    <string name="document_preview_load_failed">Failed to load the preview page (%1$s)</string>
+    <string name="document_preview_error_network">network error</string>
 </resources>

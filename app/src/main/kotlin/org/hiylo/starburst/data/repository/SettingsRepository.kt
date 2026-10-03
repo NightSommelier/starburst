@@ -175,7 +175,7 @@ internal val SESSION_CATEGORIES_KEY = stringPreferencesKey("session_categories")
         intPreferencesKey(SERVER_CONTEXT_LIMIT_PREFIX + serverId)
 
     /**
-     * Selected language code (e.g. "en", "ru", "de") or empty string for system default.
+     * Selected language code (e.g. "en", "uk", "de") or empty string for system default.
      */
     val appLanguage: Flow<String> = dataStore.data.mapDecoded { preferences ->
         preferences[LANGUAGE_KEY] ?: ""

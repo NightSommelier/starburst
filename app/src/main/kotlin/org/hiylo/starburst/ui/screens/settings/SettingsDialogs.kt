@@ -568,7 +568,6 @@ internal fun LanguagePickerDialog(
             "ko" to "한국어",
             "pl" to "Polski",
             "pt-BR" to "Português (Brasil)",
-            "ru" to "Русский",
             "tr" to "Türkçe",
             "uk" to "Українська",
             "zh-CN" to "简体中文"

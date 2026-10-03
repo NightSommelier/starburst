@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Стан з'єднання -->
+    <string name="server_health_title">Стан з\'єднання</string>
+    <string name="server_health_status">Статус</string>
+    <string name="server_health_connected">Підключено</string>
+    <string name="server_health_reconnecting">Повторне підключення</string>
+    <string name="server_health_failed">Не вдалося</string>
+    <string name="server_health_disconnected">Відключено</string>
+    <string name="server_health_latency">Затримка</string>
+    <string name="server_health_latency_value">%1$d мс</string>
+    <string name="server_health_last_heartbeat">Останній heartbeat</string>
+    <string name="server_health_heartbeat_ago">%1$ds тому</string>
+    <string name="server_health_heartbeat_never">Ніколи</string>
+
+    <!-- SSH-тунель -->
+    <string name="server_ssh_port">SSH-порт</string>
+    <string name="server_ssh_username">Ім\'я користувача SSH</string>
+    <string name="server_ssh_password">Пароль SSH (необов\'язково)</string>
+    </resources>

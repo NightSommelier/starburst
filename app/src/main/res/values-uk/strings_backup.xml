@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Резервне копіювання та відновлення -->
+    <string name="settings_backup_restore">Резервна копія</string>
+    <string name="settings_backup_restore_desc">Експорт або відновлення налаштувань і серверів</string>
+
+    <string name="backup_restore_title">Резервна копія</string>
+    <string name="backup_restore_desc">Експортуйте налаштування, сервери та шаблони в зашифрований файл або відновіть їх на іншому пристрої.</string>
+    <string name="backup_note">Файли резервних копій зашифровані парольною фразою, тому їх можна відновити на будь-якому пристрої.</string>
+    <string name="backup_passphrase_label">Парольна фраза</string>
+    <string name="backup_export">Експорт резервної копії</string>
+    <string name="backup_import">Імпорт резервної копії</string>
+    <string name="backup_working">Виконується…</string>
+    <string name="backup_export_success">Резервну копію експортовано</string>
+    <string name="backup_import_success">Резервну копію відновлено</string>
+    <string name="backup_error_wrong_passphrase">Невірна парольна фраза</string>
+    <string name="backup_error_invalid_file">Некоректний файл резервної копії</string>
+    <string name="backup_error_unsupported_version">Непідтримувана версія резервної копії</string>
+    <string name="backup_error_io">Не вдалося прочитати або записати файл</string>
+    <string name="backup_error_generic">Помилка резервного копіювання</string>
+
+    <string name="backup_sftp_section">SFTP / NAS</string>
+    <string name="backup_sftp_host">Хост</string>
+    <string name="backup_sftp_port">Порт</string>
+    <string name="backup_sftp_username">Ім\'я користувача</string>
+    <string name="backup_sftp_password">Пароль</string>
+    <string name="backup_sftp_dir">Віддалений каталог</string>
+    <string name="backup_sftp_export">Створити резервну копію на NAS</string>
+    <string name="backup_sftp_import">Відновити з NAS</string>
+</resources>

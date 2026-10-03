@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="custom_command_manage">Керування власними командами…</string>
+    <string name="custom_command_title">Власні команди</string>
+    <string name="custom_command_empty">Власних команд ще немає. Додайте одну нижче.</string>
+    <string name="custom_command_name_label">Назва команди (напр. review)</string>
+    <string name="custom_command_prompt_label">Промпт для вставлення</string>
+    <string name="custom_command_add">Додати</string>
+    <string name="custom_command_add_failed">Така назва вже існує або поля порожні.</string>
+    <string name="custom_command_delete">Видалити %1$s</string>
+    <string name="subagent_status_running">Виконується</string>
+    <string name="subagent_status_completed">Завершено</string>
+    <string name="subagent_status_failed">Не вдалося</string>
+    <string name="subagent_status_pending">Очікує</string>
+</resources>
